@@ -2,6 +2,8 @@
 
 The Anti-Doomscrolling Research Terminal & 3D Knowledge Graph
 
+![Architecture](docs/scholarly-sage-architecture.png)
+
 ### The Philosophy: Directed Dopamine vs. Doomscrolling
 
 SAGE was built as a conceptual antidote to the modern plague of "doomscrolling."
@@ -22,14 +24,14 @@ SAGE provides that same micro-dopamine hit of discovering new information, but g
 
 Core Features
 
-**Research Terminal**: A command-line style interface that fetches, reads, and distills the latest scientific papers into highly concise, actionable takeaways.
-
-The Agent Terminal provides a distraction-free interface to interact with Claude 4.5 Sonnet and Google Scholar, instantly distilling complex peer-reviewed papers into actionable bullet points.
+![Reasearch Terminal](docs/sage-dash-agent-terminal.png)
+**The Agent Terminal**: provides a distraction-free interface to interact with Claude 4.5 Sonnet and Google Scholar, instantly distilling complex peer-reviewed papers into actionable bullet points.
 
 **Relate & Contrary Discovery**: Built-in agentic commands (relate [topic] or contrary [topic]) that force the AI to break echo chambers by actively hunting for opposing viewpoints and limitations in current science.
 
 **3D Semantic Knowledge Graph**: Every search is vectorized via AWS Titan and plotted in an interactive 3D constellation. Papers with similar themes physically pull closer together in space, allowing you to visualize the connections in your learning journey.
 
+![Knowledge Graph](docs/sage-dash-knowledge-graph.png)
 The ***interactive 3D semantic network*** visually clusters related research using Amazon Titan text embeddings and PCA dimensionality reduction, allowing you to see the physical connections between disciplines.
 
 **Cloud-Native Architecture**: Headless integration with AWS S3 (Data Lake) and Pinecone Serverless (Vector Database) for real-time memory.
