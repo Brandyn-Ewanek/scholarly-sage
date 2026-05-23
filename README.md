@@ -6,6 +6,8 @@ The Anti-Doomscrolling Research Terminal & 3D Knowledge Graph
 
 ### The Philosophy: Directed Dopamine vs. Doomscrolling
 
+[Visit the Scholarly Sage App](https://scholarly-sage-x8npqmyn9abjtajeez2mjv.streamlit.app/)
+
 SAGE was built as a conceptual antidote to the modern plague of "doomscrolling."
 
 Social media algorithms are designed to hijack our attention through passive consumption and variable reward schedules. We scroll endlessly hoping to learn something new, but often leave feeling cognitively drained and anxious.
@@ -81,9 +83,13 @@ Create a .streamlit folder and add a secrets.toml file.
 
 # .streamlit/secrets.toml
 AWS_ACCESS_KEY_ID = "your_aws_key"
+
 AWS_SECRET_ACCESS_KEY = "your_aws_secret"
+
 AWS_DEFAULT_REGION = "us-east-1"
+
 SERPAPI_API_KEY = "your_serpapi_key"
+
 PINECONE_API_KEY = "your_pinecone_key"
 
 
