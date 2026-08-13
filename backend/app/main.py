@@ -30,10 +30,14 @@ app = FastAPI(
     version="2.0.0"
 )
 
-# Enable CORS so your React frontend (hosted locally or on Vercel) can make API calls
+# Enable CORS so your React frontend hosted on Vercel can make API calls
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, replace with your specific Vercel URL
+    allow_origins=[
+        "http://localhost:3000",
+        "http://localhost:8000",
+        "https://scholarly-sage.vercel.app" # Your live Vercel URL
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
