@@ -92,17 +92,22 @@ export default function App() {
       const catString = majorCat || 'General Research';
       const subString = subCat || 'General';
       
+      // 1. Golden Angle Hash for maximum hue separation
       let hueHash = 0;
       for (let i = 0; i < catString.length; i++) {
           hueHash = catString.charCodeAt(i) + ((hueHash << 5) - hueHash);
+          hueHash = hueHash & hueHash; // Convert to 32bit integer
       }
-      const hue = Math.abs(hueHash) % 360;
+      // Multiply by 137.5 (Golden Angle) to forcefully scatter colors across the wheel
+      const hue = Math.abs(hueHash * 137.5) % 360;
 
+      // 2. Sub-Category Lightness calculation
       let lightHash = 0;
       for (let i = 0; i < subString.length; i++) {
           lightHash = subString.charCodeAt(i) + ((lightHash << 5) - lightHash);
+          lightHash = lightHash & lightHash;
       }
-      const lightness = 35 + (Math.abs(lightHash) % 40); // 35% to 75%
+      const lightness = 40 + (Math.abs(lightHash) % 30); // Shade between 40% to 70%
       
       return `hsl(${hue}, 85%, ${lightness}%)`;
   };

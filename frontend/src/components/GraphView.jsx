@@ -27,19 +27,21 @@ export default function GraphView({ reports, onSelectReport }) {
       const subCategory = r.taxonomy?.sub_category || 'General';
       const query = r.original_query || 'Unknown Query';
       
-      // Generate Base Hue based on Major Category (0-360)
+      // Generate Base Hue using Golden Angle spreading (0-360)
       let hueHash = 0;
       for (let j = 0; j < majorCategory.length; j++) {
           hueHash = majorCategory.charCodeAt(j) + ((hueHash << 5) - hueHash);
+          hueHash = hueHash & hueHash;
       }
-      const hue = Math.abs(hueHash) % 360;
+      const hue = Math.abs(hueHash * 137.5) % 360;
 
-      // Generate Shade/Lightness based on Sub-Category (0.35 to 0.75)
+      // Generate Shade/Lightness based on Sub-Category (0.40 to 0.70)
       let lightHash = 0;
       for (let j = 0; j < subCategory.length; j++) {
           lightHash = subCategory.charCodeAt(j) + ((lightHash << 5) - lightHash);
+          lightHash = lightHash & lightHash;
       }
-      const lightness = 0.35 + ((Math.abs(lightHash) % 40) / 100);
+      const lightness = 0.40 + ((Math.abs(lightHash) % 30) / 100);
 
       // Build HSL color using THREE.js
       const colorObj = new THREE.Color().setHSL(hue / 360, 0.85, lightness);
