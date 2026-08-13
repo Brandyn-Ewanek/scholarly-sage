@@ -1,8 +1,7 @@
 import axios from 'axios';
 
-// Defaults to your live Render backend! 
-// (You can still override this in Vercel later using Environment Variables)
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://scholarly-sage.onrender.com';
+// HARDCODING the exact Render URL to guarantee Vercel connects properly
+const API_BASE_URL = 'https://scholarly-sage-backend.onrender.com';
 
 export const fetchAllReports = async () => {
   const response = await fetch(`${API_BASE_URL}/api/reports`);
