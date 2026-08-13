@@ -6,3 +6,5 @@ langchain-aws
 google-search-results
 pydantic
 python-dotenv
+numpy
+scikit-learn
