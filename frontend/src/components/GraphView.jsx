@@ -23,15 +23,27 @@ export default function GraphView({ reports, onSelectReport }) {
       // 1. Extract Real Metadata from S3 Payload
       const filename = r.file_key.split('/').pop().replace('.json', '');
       const title = r.executive_summary_2page?.report_title || filename.replace(/-/g, ' ');
-      const category = r.taxonomy?.assigned_category || 'General Research';
+      const majorCategory = r.taxonomy?.major_category || r.taxonomy?.assigned_category || 'General Research';
+      const subCategory = r.taxonomy?.sub_category || 'General';
       const query = r.original_query || 'Unknown Query';
       
-      const colors = [0x38bdf8, 0x818cf8, 0x34d399, 0xfbbf24, 0xf472b6, 0xf87171, 0xc084fc, 0x2dd4bf];
-      let hash = 0;
-      for (let j = 0; j < category.length; j++) {
-          hash = category.charCodeAt(j) + ((hash << 5) - hash);
+      // Generate Base Hue based on Major Category (0-360)
+      let hueHash = 0;
+      for (let j = 0; j < majorCategory.length; j++) {
+          hueHash = majorCategory.charCodeAt(j) + ((hueHash << 5) - hueHash);
       }
-      const colorIndex = Math.abs(hash) % colors.length;
+      const hue = Math.abs(hueHash) % 360;
+
+      // Generate Shade/Lightness based on Sub-Category (0.35 to 0.75)
+      let lightHash = 0;
+      for (let j = 0; j < subCategory.length; j++) {
+          lightHash = subCategory.charCodeAt(j) + ((lightHash << 5) - lightHash);
+      }
+      const lightness = 0.35 + ((Math.abs(lightHash) % 40) / 100);
+
+      // Build HSL color using THREE.js
+      const colorObj = new THREE.Color().setHSL(hue / 360, 0.85, lightness);
+      const hexColor = colorObj.getHex();
 
       // 2. Adjust Size (Core size tripled, based on file mass)
       const nodeSize = Math.min(Math.max((r.size / 1024) * 0.225, 0.9), 3.6);
@@ -71,10 +83,11 @@ export default function GraphView({ reports, onSelectReport }) {
       return {
         id: r.file_key,
         title,
-        category,
+        category: majorCategory,
+        subCategory: subCategory,
         query,
         size: nodeSize,
-        color: colors[colorIndex],
+        color: hexColor,
         basePos: new THREE.Vector3(baseX, baseY, baseZ),
         orbitSpeed,
         orbitPhase,
@@ -318,6 +331,7 @@ export default function GraphView({ reports, onSelectReport }) {
                   }}>
                       {hoveredNodeData.category}
                   </span>
+                  <span style={{ fontSize: '11px', color: '#94a3b8' }}>&gt; {hoveredNodeData.subCategory}</span>
               </div>
               
               <h4 style={{ margin: '0 0 12px 0', color: '#f8fafc', fontSize: '16px', lineHeight: '1.4' }}>

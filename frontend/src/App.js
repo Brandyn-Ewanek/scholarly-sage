@@ -87,15 +87,24 @@ export default function App() {
     }
   };
 
-  // Helper to sync UI colors exactly with the 3D Graph nodes
-  const getCategoryColor = (category) => {
-      const hexColors = ['#38bdf8', '#818cf8', '#34d399', '#fbbf24', '#f472b6', '#f87171', '#c084fc', '#2dd4bf'];
-      const catString = category || 'General Research';
-      let hash = 0;
+  // Helper to sync UI colors exactly with the 3D Graph nodes using HSL Shading
+  const getCategoryColor = (majorCat, subCat) => {
+      const catString = majorCat || 'General Research';
+      const subString = subCat || 'General';
+      
+      let hueHash = 0;
       for (let i = 0; i < catString.length; i++) {
-          hash = catString.charCodeAt(i) + ((hash << 5) - hash);
+          hueHash = catString.charCodeAt(i) + ((hueHash << 5) - hueHash);
       }
-      return hexColors[Math.abs(hash) % hexColors.length];
+      const hue = Math.abs(hueHash) % 360;
+
+      let lightHash = 0;
+      for (let i = 0; i < subString.length; i++) {
+          lightHash = subString.charCodeAt(i) + ((lightHash << 5) - lightHash);
+      }
+      const lightness = 35 + (Math.abs(lightHash) % 40); // 35% to 75%
+      
+      return `hsl(${hue}, 85%, ${lightness}%)`;
   };
 
   return (
@@ -229,8 +238,9 @@ export default function App() {
             
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
                 {(reports || []).map((item) => {
-                    const catStr = item.taxonomy?.assigned_category || 'General Research';
-                    const catColor = getCategoryColor(catStr);
+                    const majorCatStr = item.taxonomy?.major_category || item.taxonomy?.assigned_category || 'General Research';
+                    const subCatStr = item.taxonomy?.sub_category || 'General';
+                    const catColor = getCategoryColor(majorCatStr, subCatStr);
                     const title = item.executive_summary_2page?.report_title || item.original_query || item.file_key.split('/').pop().replace('.json', '');
                     
                     return (
@@ -245,9 +255,12 @@ export default function App() {
                         onMouseOver={(e) => { e.currentTarget.style.borderColor = catColor; e.currentTarget.style.transform = 'translateY(-2px)'; }}
                         onMouseOut={(e) => { e.currentTarget.style.borderColor = '#1e293b'; e.currentTarget.style.transform = 'translateY(0)'; }}
                     >
-                        <span style={{ fontSize: '10px', color: catColor, textTransform: 'uppercase', fontWeight: 'bold', letterSpacing: '0.5px', marginBottom: '8px', display: 'block' }}>
-                          {catStr}
-                        </span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
+                          <span style={{ fontSize: '10px', color: catColor, textTransform: 'uppercase', fontWeight: 'bold', letterSpacing: '0.5px' }}>
+                            {majorCatStr}
+                          </span>
+                          <span style={{ fontSize: '10px', color: '#64748b' }}>&gt; {subCatStr}</span>
+                        </div>
                         <h4 style={{ margin: '0 0 12px 0', color: '#e2e8f0', fontSize: '16px', lineHeight: '1.4', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
                             {title}
                         </h4>
@@ -293,8 +306,9 @@ export default function App() {
               <h4 style={{ margin: '0 0 16px 0', fontSize: '16px', color: '#e2e8f0', borderBottom: '1px solid #1e293b', paddingBottom: '8px' }}>Select Sources</h4>
               <div style={{ flex: 1, overflowY: 'auto', paddingRight: '8px' }}>
                 {(reports || []).map((item) => {
-                  const catStr = item.taxonomy?.assigned_category || 'General Research';
-                  const catColor = getCategoryColor(catStr);
+                  const majorCatStr = item.taxonomy?.major_category || item.taxonomy?.assigned_category || 'General Research';
+                  const subCatStr = item.taxonomy?.sub_category || 'General';
+                  const catColor = getCategoryColor(majorCatStr, subCatStr);
                   const title = item.executive_summary_2page?.report_title || item.original_query || item.file_key.split('/').pop().replace('.json', '');
                   
                   return (
