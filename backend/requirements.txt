@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+boto3
+langchain
+langchain-aws
+google-search-results
+pydantic
+python-dotenv

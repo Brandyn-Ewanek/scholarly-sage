@@ -6,3 +6,4 @@ plotly
 pinecone
 pandas
 scikit-learn
+starlette<1.4.0

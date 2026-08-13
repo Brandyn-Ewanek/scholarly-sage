@@ -14,7 +14,7 @@ Social media algorithms are designed to hijack our attention through passive con
 
 SAGE flips this paradigm by shifting the user from a "Passive Consumer" to an "Active Hunter."
 
-***The Science of the "Hunt"***
+### The Science of the "Hunt"
 
 Research in cyberpsychology and neuroscience (such as studies on Information Foraging Theory and Self-Determination Theory) highlights a massive difference in how our brains process digital information:
 
@@ -24,19 +24,20 @@ Research in cyberpsychology and neuroscience (such as studies on Information For
 
 SAGE provides that same micro-dopamine hit of discovering new information, but grounds it in intentionality, agency, and peer-reviewed science. You aren't being fed what an algorithm wants you to see; you are exploring what you want to know.
 
-Core Features
+## Core Features
 
 ![Reasearch Terminal](docs/sage-dash-agent-terminal.png)
 **The Agent Terminal**: provides a distraction-free interface to interact with Claude 4.5 Sonnet and Google Scholar, instantly distilling complex peer-reviewed papers into actionable bullet points.
 
-**Relate & Contrary Discovery**: Built-in agentic commands (relate [topic] or contrary [topic]) that force the AI to break echo chambers by actively hunting for opposing viewpoints and limitations in current science.
+* **Relate & Contrary Discovery**: Built-in agentic commands (relate [topic] or contrary [topic]) that force the AI to break echo chambers by actively hunting for opposing viewpoints and limitations in current science.
 
-**3D Semantic Knowledge Graph**: Every search is vectorized via AWS Titan and plotted in an interactive 3D constellation. Papers with similar themes physically pull closer together in space, allowing you to visualize the connections in your learning journey.
+* **3D Semantic Knowledge Graph**: Every search is vectorized via AWS Titan and plotted in an interactive 3D constellation. Papers with similar themes physically pull closer together in space, allowing you to visualize the connections in your learning journey.
 
 ![Knowledge Graph](docs/sage-dash-knowledge-graph.png)
 The ***interactive 3D semantic network*** visually clusters related research using Amazon Titan text embeddings and PCA dimensionality reduction, allowing you to see the physical connections between disciplines.
 
-**Cloud-Native Architecture**: Headless integration with AWS S3 (Data Lake) and Pinecone Serverless (Vector Database) for real-time memory.
+* **Cloud-Native Architecture**: Headless integration with AWS S3 (Data Lake) and Pinecone Serverless (Vector Database) for real-time memory.
+
 
 ### System Architecture
 
@@ -54,48 +55,43 @@ The application is built on a serverless, event-driven pipeline that vectorizes 
 
 + **Vector Database**: Pinecone (Serverless)
 
-**Data Lake**: AWS S3
++ **Data Lake**: AWS S3
 
-**Search Tooling**: SerpApi (Google Scholar Engine)
++ **Search Tooling**: SerpApi (Google Scholar Engine)
 
-Setup & Installation (Local Development)
+## **Setup & Installation (Local Development)**
 
-Clone the repository
+**Clone the repository**
 
 git clone [https://github.com/Brandyn-Ewanek/scholarly-sage.git](https://github.com/Brandyn-Ewanek/scholarly-sage.git)
 cd scholarly-sage
 
 
-Create a virtual environment
+**Create a virtual environment**
 
 python -m venv venv
 source venv/bin/activate  # On Windows use: venv\Scripts\activate
 
 
-Install Dependencies
-
+**Install Dependencies**
 pip install -r requirements.txt
 
 
-Environment Variables (Crucial)
+**Environment Variables**
 Create a .streamlit folder and add a secrets.toml file.
 (Note: This repository uses a .gitignore file to ensure API keys are never uploaded to GitHub).
 
-# .streamlit/secrets.toml
-AWS_ACCESS_KEY_ID = "your_aws_key"
-
-AWS_SECRET_ACCESS_KEY = "your_aws_secret"
-
-AWS_DEFAULT_REGION = "us-east-1"
-
-SERPAPI_API_KEY = "your_serpapi_key"
-
-PINECONE_API_KEY = "your_pinecone_key"
+**.streamlit/secrets.toml**
+* AWS_ACCESS_KEY_ID = "your_aws_key" 
+* AWS_SECRET_ACCESS_KEY = "your_aws_secret"
+* AWS_DEFAULT_REGION = "us-east-1"
+* SERPAPI_API_KEY = "your_serpapi_key"
+* PINECONE_API_KEY = "your_pinecone_key"
 
 
-Run the Application
+**Run the Application**
 
 streamlit run sage-dashboard-streamlit.py
 
 
-Built for the pursuit of intentional knowledge.
+***Built for the pursuit of intentional knowledge.***
