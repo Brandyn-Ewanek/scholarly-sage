@@ -1,6 +1,7 @@
 import axios from 'axios';
 
-// HARDCODING the exact Render URL to guarantee Vercel connects properly
+// We are hardcoding this to the exact, correct Render URL.
+// No environment variables, no "-backend". Just the pure URL.
 const API_BASE_URL = 'https://scholarly-sage.onrender.com';
 
 export const fetchAllReports = async () => {
