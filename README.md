@@ -14,7 +14,7 @@ Passive social media scrolling hijacks the brain's reward system using variable 
 
 Scholarly Sage is built to engage a different neurobiological mechanism: Epistemic Curiosity.
 
-Neuroscience research—most notably the foundational studies by Kang et al. (2009) and Gruber et al. (2014)—shows that actively seeking specific information to close a knowledge gap activates the exact same dopaminergic reward circuits (like the ventral tegmental area and nucleus accumbens) as physical rewards. However, active learning treats knowledge itself as the intrinsic reward. By instantly synthesizing complex data and visually mapping your research, this tool is designed to deliver a healthier, more sustained dopamine hit driven by genuine discovery, rather than fleeting digital distraction.
+Neuroscience research—most notably the foundational studies by [Kang et al. (2009)](https://doi.org/10.1177/0956797609345081) and [Gruber et al. (2014)](https://doi.org/10.1016/j.neuron.2014.08.060)—shows that actively seeking specific information to close a knowledge gap activates the exact same dopaminergic reward circuits (like the ventral tegmental area and nucleus accumbens) as physical rewards. However, active learning treats knowledge itself as the intrinsic reward. By instantly synthesizing complex data and visually mapping your research, this tool is designed to deliver a healthier, more sustained dopamine hit driven by genuine discovery, rather than fleeting digital distraction.
 
 ## System Architecture
 
@@ -24,11 +24,11 @@ The application is built on a decoupled frontend/backend architecture, utilizing
 graph TD
     %% Define Nodes
     User((User))
-    Vercel[fa:fa-desktop React Frontend<br/>(Vercel)]
-    Render[fa:fa-server FastAPI Backend<br/>(Render)]
-    Serp[fa:fa-search SerpApi<br/>(Google Scholar)]
-    Bedrock[fa:fa-brain AWS Bedrock<br/>(Claude 3 & Titan)]
-    S3[(AWS S3<br/>Data Lake)]
+    Vercel["fa:fa-desktop React Frontend<br/>(Vercel)"]
+    Render["fa:fa-server FastAPI Backend<br/>(Render)"]
+    Serp["fa:fa-search SerpApi<br/>(Google Scholar)"]
+    Bedrock["fa:fa-brain AWS Bedrock<br/>(Claude 3 & Titan)"]
+    S3[("AWS S3<br/>Data Lake")]
 
     %% Define Connections
     User -->|Interacts| Vercel
