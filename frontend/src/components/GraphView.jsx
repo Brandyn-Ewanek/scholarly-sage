@@ -27,21 +27,24 @@ export default function GraphView({ reports, onSelectReport }) {
       const subCategory = r.taxonomy?.sub_category || 'General';
       const query = r.original_query || 'Unknown Query';
       
-      // Generate Base Hue using Golden Angle spreading (0-360)
-      let hueHash = 0;
-      for (let j = 0; j < majorCategory.length; j++) {
-          hueHash = majorCategory.charCodeAt(j) + ((hueHash << 5) - hueHash);
-          hueHash = hueHash & hueHash;
+      // Curated palette of 10 vibrant, distinct hues
+      const HUES = [15, 35, 50, 140, 180, 200, 220, 270, 320, 340];
+      const catString = String(majorCategory);
+      
+      // Generate Base Hue using string sum
+      let sum = 0;
+      for (let j = 0; j < catString.length; j++) {
+          sum += catString.charCodeAt(j);
       }
-      const hue = Math.abs(hueHash * 137.5) % 360;
+      const hue = HUES[sum % HUES.length];
 
-      // Generate Shade/Lightness based on Sub-Category (0.40 to 0.70)
-      let lightHash = 0;
-      for (let j = 0; j < subCategory.length; j++) {
-          lightHash = subCategory.charCodeAt(j) + ((lightHash << 5) - lightHash);
-          lightHash = lightHash & lightHash;
+      // Generate Shade/Lightness based on Sub-Category
+      const subString = String(subCategory);
+      let lightSum = 0;
+      for (let j = 0; j < subString.length; j++) {
+          lightSum += subString.charCodeAt(j);
       }
-      const lightness = 0.40 + ((Math.abs(lightHash) % 30) / 100);
+      const lightness = 0.45 + ((lightSum % 25) / 100); // 0.45 to 0.70
 
       // Build HSL color using THREE.js
       const colorObj = new THREE.Color().setHSL(hue / 360, 0.85, lightness);

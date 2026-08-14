@@ -89,25 +89,25 @@ export default function App() {
 
   // Helper to sync UI colors exactly with the 3D Graph nodes using HSL Shading
   const getCategoryColor = (majorCat, subCat) => {
-      const catString = majorCat || 'General Research';
-      const subString = subCat || 'General';
+      const catString = String(majorCat || 'General Research');
+      const subString = String(subCat || 'General');
       
-      // 1. Golden Angle Hash for maximum hue separation
-      let hueHash = 0;
+      // Curated palette of 10 vibrant, distinct hues (No reds clashing!)
+      const HUES = [15, 35, 50, 140, 180, 200, 220, 270, 320, 340];
+      
+      // 1. Simple String Sum to pick a hue
+      let sum = 0;
       for (let i = 0; i < catString.length; i++) {
-          hueHash = catString.charCodeAt(i) + ((hueHash << 5) - hueHash);
-          hueHash = hueHash & hueHash; // Convert to 32bit integer
+          sum += catString.charCodeAt(i);
       }
-      // Multiply by 137.5 (Golden Angle) to forcefully scatter colors across the wheel
-      const hue = Math.abs(hueHash * 137.5) % 360;
+      const hue = HUES[sum % HUES.length];
 
       // 2. Sub-Category Lightness calculation
-      let lightHash = 0;
+      let lightSum = 0;
       for (let i = 0; i < subString.length; i++) {
-          lightHash = subString.charCodeAt(i) + ((lightHash << 5) - lightHash);
-          lightHash = lightHash & lightHash;
+          lightSum += subString.charCodeAt(i);
       }
-      const lightness = 40 + (Math.abs(lightHash) % 30); // Shade between 40% to 70%
+      const lightness = 45 + (lightSum % 25); // Shade between 45% to 70%
       
       return `hsl(${hue}, 85%, ${lightness}%)`;
   };
@@ -337,7 +337,7 @@ export default function App() {
                     />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <span style={{ fontSize: '9px', color: catColor, textTransform: 'uppercase', fontWeight: 'bold', letterSpacing: '0.5px' }}>
-                        {catStr}
+                        {majorCatStr}
                       </span>
                       <p 
                         onClick={() => handleSelectReport(item.file_key)}
