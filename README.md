@@ -3,6 +3,7 @@
 Live Demo: https://scholarly-sage-48x7.vercel.app/
 
 **⚠️ Note on First Load (Cold Start):**
+
 This application utilizes a low-cost, serverless architecture. The FastAPI backend is hosted on Render's free tier, which spins down after 15 minutes of inactivity. Please allow up to 60 seconds for your very first search or library load while the server wakes up. Subsequent requests will be lightning fast!
 
 Scholarly Sage is an AI-powered academic research assistant. It automates the process of scraping recent scientific literature, extracting hard metrics and contrary perspectives using AWS Bedrock (Claude), and mapping the semantic relationships between different research topics in an interactive 3D spatial graph.
@@ -19,6 +20,7 @@ Neuroscience research—most notably the foundational studies by Kang et al. (20
 
 The application is built on a decoupled frontend/backend architecture, utilizing AWS for heavy lifting, vector generation, and data lake storage.
 
+```mermaid
 graph TD
     %% Define Nodes
     User((User))
@@ -52,11 +54,11 @@ graph TD
     class Render backend;
     class Bedrock,S3 aws;
     class Serp external;
-
+```
 
 ## Dashboard Features
 
-1. ⚡ Fast Research
+### 1. ⚡ Fast Research
 
 Instant Literature Scraping: Enter any topic, and the backend instantly scrapes the most recent academic papers via SerpApi.
 
@@ -64,7 +66,7 @@ AI Executive Summary: AWS Bedrock (Claude 3) processes the raw text to extract h
 
 Contrary Perspectives: Automatically highlights findings that defy common assumptions or show conflicting scientific conclusions.
 
-2. 📚 Research Library
+### 2. 📚 Research Library
 
 AWS S3 Data Lake: Every query and analysis is permanently archived as a JSON payload in an AWS S3 bucket.
 
@@ -72,7 +74,7 @@ Dynamic Taxonomy: The AI automatically categorizes your research into one of 20 
 
 Algorithmic Coloring: Cards are visually distinct, using HSL math and the Golden Angle to map text hashes to vibrant, non-clashing colors based on their category.
 
-3. 🌐 5D Knowledge Graph
+### 3. 🌐 5D Knowledge Graph
 
 Semantic Spatial Mapping: Uses Amazon Titan Text v2 to generate 256-dimensional embeddings of your research, which are reduced via PCA to 3D coordinates (X, Y, Z).
 
@@ -80,7 +82,7 @@ Interactive Physics: Built with Three.js. Nodes drift on macro-orbital paths and
 
 Comparative Synthesis: Select any two nodes in the graph to trigger Claude to analyze them together, mapping their conceptual intersections and generating a brand new synthesis report.
 
-🛠️ Tech Stack
+## 🛠️ Tech Stack
 
 * Frontend: React.js, Three.js (3D Graph), Vercel
 
