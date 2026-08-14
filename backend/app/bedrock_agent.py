@@ -33,26 +33,37 @@ def parse_json_response(output_text: str) -> dict:
 
 def categorize_research(topic: str, keywords: list, existing_categories: list) -> dict:
     """
-    Evaluates research keywords against existing categories to map or create a new major taxonomy.
+    Evaluates research keywords and assigns them to one of 20 fixed Major Categories, 
+    plus generates a dynamic Sub-Category.
     """
+    # Define the fixed 20 Master Categories
+    MASTER_CATEGORIES = [
+        "Artificial Intelligence", "Data Science & Analytics", "Longevity & Aging",
+        "Biological & Health Sciences", "Genetics & Genomics", "Neuroscience & Cognition",
+        "Nutrition & Dietetics", "Veterinary Medicine", "Medical Sciences",
+        "Software & Architecture", "Computer Hardware & Systems", "Robotics & Automation",
+        "Physics & Mathematics", "Chemistry & Pharmacology", "Environmental & Earth Sciences",
+        "Social Sciences & Psychology", "Business & Economics", "Philosophy & Ethics", 
+        "Materials Science", "General Research"
+    ]
+
     system_prompt = (
-        "You are an expert research librarian. Your job is to classify a new research topic into an existing taxonomy.\n"
-        "If the topic strongly matches an existing major category, assign it there.\n"
-        "If it does not fit, create a broad, academically standard new major category.\n"
+        "You are an expert research librarian. Your job is to classify a new research topic.\n"
+        "MANDATORY RULE 1: You MUST choose a `major_category` EXACTLY from this list (no exceptions):\n"
+        f"{', '.join(MASTER_CATEGORIES)}\n\n"
+        "MANDATORY RULE 2: You must generate a highly specific `sub_category` (e.g., 'Antioxidants', 'AI Routing', 'Feline Disease').\n"
         "You must respond ONLY in valid JSON matching the exact schema requested, with no markdown formatting."
     )
     
     user_message = f"""
     Topic: {topic}
     Keywords: {', '.join(keywords)}
-    Existing Major Categories: {', '.join(existing_categories) if existing_categories else 'None'}
     
     Return a JSON object with this exact structure:
     {{
       "classification_result": {{
-        "assigned_category": "String",
-        "is_new_category": true/false,
-        "sub_category": "String",
+        "major_category": "String (Must be from the master list)",
+        "sub_category": "String (Specific niche topic)",
         "keywords": ["String"]
       }}
     }}

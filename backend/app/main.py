@@ -109,7 +109,11 @@ async def list_all_reports():
             r["original_query"] = r["full_data"].get("original_query", "Unknown Query")
             
             tax = r["full_data"].get("taxonomy", {})
-            r["taxonomy"] = {"assigned_category": tax.get("assigned_category", "General Research")}
+            # Backward compatibility for old reports + new major/sub schema
+            r["taxonomy"] = {
+                "major_category": tax.get("major_category", tax.get("assigned_category", "General Research")),
+                "sub_category": tax.get("sub_category", "General")
+            }
             
             summary = r["full_data"].get("executive_summary_2page", {})
             r["executive_summary_2page"] = {"report_title": summary.get("report_title", "")}
@@ -153,7 +157,9 @@ async def execute_new_research(request: ResearchRequest):
         # 4. Categorize research taxonomy
         existing_tax = get_master_taxonomy()
         cat_result = categorize_research(request.query, [request.query], existing_tax)
-        assigned_cat = cat_result.get("classification_result", {}).get("assigned_category", "General Research")
+        
+        # FIX: Look for 'major_category' instead of the legacy 'assigned_category'
+        assigned_cat = cat_result.get("classification_result", {}).get("major_category", "General Research")
         update_master_taxonomy(assigned_cat)
         
         # 5. Construct S3 Payload

@@ -1,97 +1,93 @@
-# SAGE (Scholarly Sage)
+# Scholarly Sage
 
-The Anti-Doomscrolling Research Terminal & 3D Knowledge Graph
+Live Demo: https://scholarly-sage-48x7.vercel.app/
 
-![Architecture](docs/scholarly-sage-architecture.png)
+**⚠️ Note on First Load (Cold Start):**
+This application utilizes a low-cost, serverless architecture. The FastAPI backend is hosted on Render's free tier, which spins down after 15 minutes of inactivity. Please allow up to 60 seconds for your very first search or library load while the server wakes up. Subsequent requests will be lightning fast!
 
-### The Philosophy: Directed Dopamine vs. Doomscrolling
+Scholarly Sage is an AI-powered academic research assistant. It automates the process of scraping recent scientific literature, extracting hard metrics and contrary perspectives using AWS Bedrock (Claude), and mapping the semantic relationships between different research topics in an interactive 3D spatial graph.
 
-[Visit the Scholarly Sage App](https://scholarly-sage-x8npqmyn9abjtajeez2mjv.streamlit.app/)
+### The Science of Epistemic Curiosity
 
-SAGE was built as a conceptual antidote to the modern plague of "doomscrolling."
+Passive social media scrolling hijacks the brain's reward system using variable reward reinforcement—triggering cheap, unpredictable dopamine spikes that lead to compulsive habits, cognitive fatigue, and shallow attention.
 
-Social media algorithms are designed to hijack our attention through passive consumption and variable reward schedules. We scroll endlessly hoping to learn something new, but often leave feeling cognitively drained and anxious.
+Scholarly Sage is built to engage a different neurobiological mechanism: Epistemic Curiosity.
 
-SAGE flips this paradigm by shifting the user from a "Passive Consumer" to an "Active Hunter."
+Neuroscience research—most notably the foundational studies by Kang et al. (2009) and Gruber et al. (2014)—shows that actively seeking specific information to close a knowledge gap activates the exact same dopaminergic reward circuits (like the ventral tegmental area and nucleus accumbens) as physical rewards. However, active learning treats knowledge itself as the intrinsic reward. By instantly synthesizing complex data and visually mapping your research, this tool is designed to deliver a healthier, more sustained dopamine hit driven by genuine discovery, rather than fleeting digital distraction.
 
-### The Science of the "Hunt"
+## System Architecture
 
-Research in cyberpsychology and neuroscience (such as studies on Information Foraging Theory and Self-Determination Theory) highlights a massive difference in how our brains process digital information:
+The application is built on a decoupled frontend/backend architecture, utilizing AWS for heavy lifting, vector generation, and data lake storage.
 
-+ **Passive Scrolling**: Correlates strongly with increased cognitive load, anxiety, and depressive symptoms (e.g., Verduyn et al., 2015). It relies on unpredictable external triggers that remove user agency.
+graph TD
+    %% Define Nodes
+    User((User))
+    Vercel[fa:fa-desktop React Frontend<br/>(Vercel)]
+    Render[fa:fa-server FastAPI Backend<br/>(Render)]
+    Serp[fa:fa-search SerpApi<br/>(Google Scholar)]
+    Bedrock[fa:fa-brain AWS Bedrock<br/>(Claude 3 & Titan)]
+    S3[(AWS S3<br/>Data Lake)]
 
-+ **Active Information Seeking**: When we actively formulate a question and hunt for the answer, we engage the brain's mammalian "Seeking System" (identified by Jaak Panksepp). This goal-directed behavior releases dopamine not just as a reward, but as motivation during the pursuit.
-
-SAGE provides that same micro-dopamine hit of discovering new information, but grounds it in intentionality, agency, and peer-reviewed science. You aren't being fed what an algorithm wants you to see; you are exploring what you want to know.
-
-## Core Features
-
-![Reasearch Terminal](docs/sage-dash-agent-terminal.png)
-**The Agent Terminal**: provides a distraction-free interface to interact with Claude 4.5 Sonnet and Google Scholar, instantly distilling complex peer-reviewed papers into actionable bullet points.
-
-* **Relate & Contrary Discovery**: Built-in agentic commands (relate [topic] or contrary [topic]) that force the AI to break echo chambers by actively hunting for opposing viewpoints and limitations in current science.
-
-* **3D Semantic Knowledge Graph**: Every search is vectorized via AWS Titan and plotted in an interactive 3D constellation. Papers with similar themes physically pull closer together in space, allowing you to visualize the connections in your learning journey.
-
-![Knowledge Graph](docs/sage-dash-knowledge-graph.png)
-The ***interactive 3D semantic network*** visually clusters related research using Amazon Titan text embeddings and PCA dimensionality reduction, allowing you to see the physical connections between disciplines.
-
-* **Cloud-Native Architecture**: Headless integration with AWS S3 (Data Lake) and Pinecone Serverless (Vector Database) for real-time memory.
-
-
-### System Architecture
-
-The application is built on a serverless, event-driven pipeline that vectorizes and maps scientific text in real-time.
-
-**The SAGE data pipeline**: from Streamlit and SerpApi to AWS Bedrock processing, S3 Data Lake storage, and Pinecone vectorization.
-
-### **Tech Stack**:
-
-+ **Frontend**: Streamlit, Plotly Express (3D Graphing)
-
-+ **LLM Engine**: Anthropic Claude 4.5 Sonnet (via AWS Bedrock)
-
-+ **Embedding Model**: Amazon Titan Text Embeddings V2 (amazon.titan-embed-text-v2:0)
-
-+ **Vector Database**: Pinecone (Serverless)
-
-+ **Data Lake**: AWS S3
-
-+ **Search Tooling**: SerpApi (Google Scholar Engine)
-
-## **Setup & Installation (Local Development)**
-
-**Clone the repository**
-
-git clone [https://github.com/Brandyn-Ewanek/scholarly-sage.git](https://github.com/Brandyn-Ewanek/scholarly-sage.git)
-cd scholarly-sage
+    %% Define Connections
+    User -->|Interacts| Vercel
+    Vercel -->|REST API Calls| Render
+    
+    %% Backend Logic
+    Render -->|1. Scrape Queries| Serp
+    Serp -.->|Academic Papers| Render
+    
+    Render -->|2. Analysis & Embeddings| Bedrock
+    Bedrock -.->|JSON Summaries & Vectors| Render
+    
+    Render -->|3. Read/Write| S3
+    S3 -.->|JSON Reports| Render
+    
+    %% Styling
+    classDef frontend fill:#020617,stroke:#38bdf8,stroke-width:2px,color:#fff;
+    classDef backend fill:#0f172a,stroke:#10b981,stroke-width:2px,color:#fff;
+    classDef aws fill:#FF9900,stroke:#232F3E,stroke-width:2px,color:#232F3E;
+    classDef external fill:#fff,stroke:#333,stroke-width:2px,color:#333;
+    
+    class Vercel frontend;
+    class Render backend;
+    class Bedrock,S3 aws;
+    class Serp external;
 
 
-**Create a virtual environment**
+## Dashboard Features
 
-python -m venv venv
-source venv/bin/activate  # On Windows use: venv\Scripts\activate
+1. ⚡ Fast Research
 
+Instant Literature Scraping: Enter any topic, and the backend instantly scrapes the most recent academic papers via SerpApi.
 
-**Install Dependencies**
-pip install -r requirements.txt
+AI Executive Summary: AWS Bedrock (Claude 3) processes the raw text to extract hard metrics, sample sizes, and novel methodologies.
 
+Contrary Perspectives: Automatically highlights findings that defy common assumptions or show conflicting scientific conclusions.
 
-**Environment Variables**
-Create a .streamlit folder and add a secrets.toml file.
-(Note: This repository uses a .gitignore file to ensure API keys are never uploaded to GitHub).
+2. 📚 Research Library
 
-**.streamlit/secrets.toml**
-* AWS_ACCESS_KEY_ID = "your_aws_key" 
-* AWS_SECRET_ACCESS_KEY = "your_aws_secret"
-* AWS_DEFAULT_REGION = "us-east-1"
-* SERPAPI_API_KEY = "your_serpapi_key"
-* PINECONE_API_KEY = "your_pinecone_key"
+AWS S3 Data Lake: Every query and analysis is permanently archived as a JSON payload in an AWS S3 bucket.
 
+Dynamic Taxonomy: The AI automatically categorizes your research into one of 20 Master Categories (e.g., Biological & Health Sciences) and generates a highly specific sub-category.
 
-**Run the Application**
+Algorithmic Coloring: Cards are visually distinct, using HSL math and the Golden Angle to map text hashes to vibrant, non-clashing colors based on their category.
 
-streamlit run sage-dashboard-streamlit.py
+3. 🌐 5D Knowledge Graph
 
+Semantic Spatial Mapping: Uses Amazon Titan Text v2 to generate 256-dimensional embeddings of your research, which are reduced via PCA to 3D coordinates (X, Y, Z).
 
-***Built for the pursuit of intentional knowledge.***
+Interactive Physics: Built with Three.js. Nodes drift on macro-orbital paths and vibrate with localized conceptual "jitter" to create a living constellation of data.
+
+Comparative Synthesis: Select any two nodes in the graph to trigger Claude to analyze them together, mapping their conceptual intersections and generating a brand new synthesis report.
+
+🛠️ Tech Stack
+
+* Frontend: React.js, Three.js (3D Graph), Vercel
+
+* Backend: Python, FastAPI, Render
+
+* AI & Machine Learning: AWS Bedrock (Claude 3.5 Sonnet / Claude 3 Haiku / Titan Embeddings), Scikit-learn (PCA)
+
+* Database / Storage: AWS S3
+
+* Scraping: SerpApi (Google Scholar Engine)
