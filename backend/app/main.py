@@ -1,3 +1,4 @@
+import os
 from dotenv import load_dotenv
 load_dotenv()  # Loads variables from .env file into environment at startup
 
@@ -30,10 +31,10 @@ app = FastAPI(
     version="2.0.0"
 )
 
-# Enable CORS so your React frontend hosted on Vercel can make API calls
+# Broadened CORS policy to ensure Vercel can always connect
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # TEMPORARILY ALLOW ALL ORIGINS
+    allow_origins=["*"], 
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -73,7 +74,6 @@ async def list_all_reports():
     """
     reports = list_research_reports()
     
-    # We need to fetch the full JSONs to get their embeddings
     full_reports = []
     valid_embeddings = []
     valid_indices = []
@@ -105,11 +105,13 @@ async def list_all_reports():
     # Clean up full_data so we don't send massive payloads to the frontend
     for r in full_reports:
         if "full_data" in r:
-            # EXTRACT NEEDED METADATA BEFORE DELETING
+            # EXPOSE NEW METADATA FOR SYNTHESIS LINKS
+            r["query_type"] = r["full_data"].get("query_type", "primary_research")
+            r["source_reports"] = r["full_data"].get("source_reports", [])
+            
             r["original_query"] = r["full_data"].get("original_query", "Unknown Query")
             
             tax = r["full_data"].get("taxonomy", {})
-            # Backward compatibility for old reports + new major/sub schema
             r["taxonomy"] = {
                 "major_category": tax.get("major_category", tax.get("assigned_category", "General Research")),
                 "sub_category": tax.get("sub_category", "General")
@@ -140,29 +142,21 @@ async def execute_new_research(request: ResearchRequest):
     Searches Google Scholar, runs Bedrock fact/metric extraction, categorizes the topic, and saves JSON to S3.
     """
     try:
-        # 1. Search Google Scholar
         papers = search_google_scholar(request.query)
         if not papers:
             raise HTTPException(status_code=400, detail="No academic papers found for this query or SERPAPI_API_KEY missing.")
         
-        # Combine scraped paper snippets for LLM processing
         combined_text = "\n\n".join([f"Title: {p['title']}\nSnippet: {p['snippet']}\nLink: {p['link']}" for p in papers])
         
-        # 2. Extract facts/metrics via Claude 3
         research_analysis = analyze_primary_research(combined_text)
-        
-        # 3. Generate Titan Embedding for 3D Graph
         embedding_vector = generate_titan_embedding(combined_text)
         
-        # 4. Categorize research taxonomy
         existing_tax = get_master_taxonomy()
         cat_result = categorize_research(request.query, [request.query], existing_tax)
         
-        # FIX: Look for 'major_category' instead of the legacy 'assigned_category'
         assigned_cat = cat_result.get("classification_result", {}).get("major_category", "General Research")
         update_master_taxonomy(assigned_cat)
         
-        # 5. Construct S3 Payload
         full_report = {
             "query_type": "primary_research",
             "original_query": request.query,
@@ -173,7 +167,6 @@ async def execute_new_research(request: ResearchRequest):
             **research_analysis
         }
         
-        # 6. Save report to S3
         report_id = save_research_report(full_report)
         
         return {

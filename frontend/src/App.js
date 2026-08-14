@@ -4,7 +4,7 @@ import GraphView from './components/GraphView';
 import ReportModal from './components/ReportModal';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('research'); // 'research', 'library', or 'graph'
+  const [activeTab, setActiveTab] = useState('research'); 
   const [reports, setReports] = useState([]);
   const [selectedKeys, setSelectedKeys] = useState([]);
   const [activeReport, setActiveReport] = useState(null);
@@ -19,7 +19,6 @@ export default function App() {
   const loadReports = async () => {
     try {
       const data = await fetchAllReports();
-      // Safely ensure reports is always an array
       const parsedReports = data.reports || data;
       setReports(Array.isArray(parsedReports) ? parsedReports : []); 
     } catch (err) {
@@ -32,16 +31,15 @@ export default function App() {
     e.preventDefault();
     if (!searchQuery.trim()) return;
     setLoading(true);
-    setLatestSearchResult(null); // Clear previous results while loading
+    setLatestSearchResult(null); 
     
     try {
       const res = await executeResearch(searchQuery);
       setLatestSearchResult(res.report);
-      // We don't automatically pop open the modal anymore, we display it inline.
-      await loadReports(); // Refresh library with the new report
+      await loadReports(); 
     } catch (err) {
       console.error('Research execution failed:', err);
-      alert('Failed to execute research query. Check the backend console.');
+      // We log to console instead of using alerts for better UI flow
     } finally {
       setLoading(false);
     }
@@ -51,7 +49,7 @@ export default function App() {
     setLoading(true);
     try {
       const data = await fetchReportByKey(fileKey);
-      setActiveReport(data); // Opens the modal for deep reading
+      setActiveReport(data); 
     } catch (err) {
       console.error('Error fetching report:', err);
     } finally {
@@ -64,7 +62,7 @@ export default function App() {
       setSelectedKeys(selectedKeys.filter((k) => k !== fileKey));
     } else {
       if (selectedKeys.length >= 2) {
-        alert('You can only select 2 reports for comparative synthesis.');
+        console.warn('You can only select 2 reports for comparative synthesis.');
         return;
       }
       setSelectedKeys([...selectedKeys, fileKey]);
@@ -80,41 +78,38 @@ export default function App() {
       await loadReports();
     } catch (err) {
       console.error('Synthesis failed:', err);
-      alert('Failed to synthesize selected reports.');
     } finally {
       setLoading(false);
-      setSelectedKeys([]); // Reset selection after synthesis
+      setSelectedKeys([]); 
     }
   };
 
-  // Helper to sync UI colors exactly with the 3D Graph nodes using HSL Shading
   const getCategoryColor = (majorCat, subCat) => {
-      const catString = String(majorCat || 'General Research');
-      const subString = String(subCat || 'General');
-      
-      // Curated palette of 10 vibrant, distinct hues (No reds clashing!)
+      // Curated palette of 10 vibrant, distinct hues
       const HUES = [15, 35, 50, 140, 180, 200, 220, 270, 320, 340];
+      const catString = String(majorCat || 'General Research');
       
-      // 1. Simple String Sum to pick a hue
+      // Generate Base Hue using string sum mapped to our curated array
       let sum = 0;
       for (let i = 0; i < catString.length; i++) {
           sum += catString.charCodeAt(i);
       }
       const hue = HUES[sum % HUES.length];
 
-      // 2. Sub-Category Lightness calculation
+      // Generate Shade/Lightness based on Sub-Category variance
+      const subString = String(subCat || 'General');
       let lightSum = 0;
       for (let i = 0; i < subString.length; i++) {
           lightSum += subString.charCodeAt(i);
       }
-      const lightness = 45 + (lightSum % 25); // Shade between 45% to 70%
+      const lightness = 45 + (lightSum % 25); 
       
       return `hsl(${hue}, 85%, ${lightness}%)`;
   };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', width: '100vw', height: '100vh', background: '#020617', color: '#f8fafc', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
-      {/* Navigation Header */}
+      
       <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 24px', borderBottom: '1px solid #1e293b', background: '#0f172a' }}>
         <h2 style={{ margin: 0, fontSize: '22px', fontWeight: '800', background: 'linear-gradient(90deg, #38bdf8, #818cf8)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
           Scholarly Sage
@@ -122,41 +117,29 @@ export default function App() {
         <div style={{ display: 'flex', gap: '12px' }}>
           <button
             onClick={() => setActiveTab('research')}
-            style={{
-              padding: '8px 16px', borderRadius: '6px', border: 'none',
-              background: activeTab === 'research' ? '#2563eb' : '#1e293b',
-              color: '#fff', cursor: 'pointer', fontWeight: 'bold', transition: 'background 0.2s'
-            }}
+            style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', background: activeTab === 'research' ? '#2563eb' : '#1e293b', color: '#fff', cursor: 'pointer', fontWeight: 'bold', transition: 'background 0.2s' }}
           >
             ⚡ Fast Research
           </button>
           <button
             onClick={() => setActiveTab('library')}
-            style={{
-              padding: '8px 16px', borderRadius: '6px', border: 'none',
-              background: activeTab === 'library' ? '#2563eb' : '#1e293b',
-              color: '#fff', cursor: 'pointer', fontWeight: 'bold', transition: 'background 0.2s'
-            }}
+            style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', background: activeTab === 'library' ? '#2563eb' : '#1e293b', color: '#fff', cursor: 'pointer', fontWeight: 'bold', transition: 'background 0.2s' }}
           >
             📚 Library ({reports.length})
           </button>
           <button
             onClick={() => setActiveTab('graph')}
-            style={{
-              padding: '8px 16px', borderRadius: '6px', border: 'none',
-              background: activeTab === 'graph' ? '#2563eb' : '#1e293b',
-              color: '#fff', cursor: 'pointer', fontWeight: 'bold', transition: 'background 0.2s'
-            }}
+            style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', background: activeTab === 'graph' ? '#2563eb' : '#1e293b', color: '#fff', cursor: 'pointer', fontWeight: 'bold', transition: 'background 0.2s' }}
           >
             🌐 Knowledge Graph
           </button>
         </div>
       </header>
 
-      {/* Main Content Body */}
+      { }
       <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
         
-        {}
+        { }
         {activeTab === 'research' && (
           <div style={{ flex: 1, padding: '40px', maxWidth: '900px', margin: '0 auto', overflowY: 'auto' }}>
             <h3 style={{ fontSize: '24px', marginBottom: '8px' }}>Query Academic Literature</h3>
@@ -168,36 +151,23 @@ export default function App() {
                 placeholder="Enter topic or keywords (e.g., Cat longevity, Autophagy mechanisms)..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                style={{
-                  flex: 1, padding: '16px', borderRadius: '8px', border: '1px solid #334155',
-                  background: '#0f172a', color: '#fff', fontSize: '16px', outline: 'none',
-                  boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.1)'
-                }}
+                style={{ flex: 1, padding: '16px', borderRadius: '8px', border: '1px solid #334155', background: '#0f172a', color: '#fff', fontSize: '16px', outline: 'none' }}
               />
               <button
                 type="submit"
                 disabled={loading}
-                style={{
-                  padding: '16px 32px', borderRadius: '8px', border: 'none',
-                  background: loading ? '#475569' : '#2563eb', color: '#fff',
-                  fontWeight: 'bold', fontSize: '16px', cursor: loading ? 'wait' : 'pointer',
-                  transition: 'background 0.2s'
-                }}
+                style={{ padding: '16px 32px', borderRadius: '8px', border: 'none', background: loading ? '#475569' : '#2563eb', color: '#fff', fontWeight: 'bold', fontSize: '16px', cursor: loading ? 'wait' : 'pointer' }}
               >
                 {loading ? 'Analyzing...' : 'Search & Analyze'}
               </button>
             </form>
 
-            {/* Inline Dashboard for Immediate Reading */}
+            { }
             {latestSearchResult && latestSearchResult.executive_summary_2page && (
-              <div style={{ 
-                background: '#0f172a', padding: '32px', borderRadius: '12px', 
-                border: '1px solid #1e293b', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
-                animation: 'fadeIn 0.5s ease-in-out'
-              }}>
+              <div style={{ background: '#0f172a', padding: '32px', borderRadius: '12px', border: '1px solid #1e293b', animation: 'fadeIn 0.5s ease-in-out' }}>
                 <div style={{ borderBottom: '1px solid #334155', paddingBottom: '20px', marginBottom: '20px' }}>
-                    <span style={{ background: '#059669', color: 'white', padding: '4px 10px', borderRadius: '12px', fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                        {latestSearchResult.taxonomy?.assigned_category || 'General Research'}
+                    <span style={{ background: '#059669', color: 'white', padding: '4px 10px', borderRadius: '12px', fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase' }}>
+                        {latestSearchResult.taxonomy?.major_category || 'General Research'}
                     </span>
                     <h2 style={{ margin: '16px 0 8px 0', color: '#38bdf8', fontSize: '28px', lineHeight: '1.3' }}>
                         {latestSearchResult.executive_summary_2page.report_title || 'Research Analysis'}
@@ -219,15 +189,11 @@ export default function App() {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', background: '#020617', padding: '20px', borderRadius: '8px' }}>
                     <div>
                         <h4 style={{ color: '#f8fafc', margin: '0 0 12px 0', fontSize: '16px' }}>⚙️ Mechanism / Methodology</h4>
-                        <p style={{ color: '#cbd5e1', fontSize: '14px', lineHeight: '1.6', margin: 0 }}>
-                          {latestSearchResult.executive_summary_2page.methodology_analysis}
-                        </p>
+                        <p style={{ color: '#cbd5e1', fontSize: '14px', lineHeight: '1.6', margin: 0 }}>{latestSearchResult.executive_summary_2page.methodology_analysis}</p>
                     </div>
                     <div>
                         <h4 style={{ color: '#f8fafc', margin: '0 0 12px 0', fontSize: '16px' }}>⚠️ Contrary Perspectives</h4>
-                        <p style={{ color: '#cbd5e1', fontSize: '14px', lineHeight: '1.6', margin: 0 }}>
-                          {latestSearchResult.executive_summary_2page.contrary_perspectives}
-                        </p>
+                        <p style={{ color: '#cbd5e1', fontSize: '14px', lineHeight: '1.6', margin: 0 }}>{latestSearchResult.executive_summary_2page.contrary_perspectives}</p>
                     </div>
                 </div>
               </div>
@@ -235,7 +201,7 @@ export default function App() {
           </div>
         )}
 
-        {}
+        { }
         {activeTab === 'library' && (
           <div style={{ flex: 1, padding: '40px', overflowY: 'auto' }}>
             <h3 style={{ fontSize: '24px', marginBottom: '8px' }}>Your Research Library</h3>
@@ -243,9 +209,10 @@ export default function App() {
             
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
                 {(reports || []).map((item) => {
-                    const majorCatStr = item.taxonomy?.major_category || item.taxonomy?.assigned_category || 'General Research';
+                    const isSynthesis = item.query_type === 'comparative_synthesis';
+                    const majorCatStr = item.taxonomy?.major_category || 'General Research';
                     const subCatStr = item.taxonomy?.sub_category || 'General';
-                    const catColor = getCategoryColor(majorCatStr, subCatStr);
+                    const catColor = isSynthesis ? '#e056fd' : getCategoryColor(majorCatStr, subCatStr);
                     const title = item.executive_summary_2page?.report_title || item.original_query || item.file_key.split('/').pop().replace('.json', '');
                     
                     return (
@@ -255,16 +222,15 @@ export default function App() {
                         style={{ 
                             background: '#0f172a', padding: '20px', borderRadius: '10px', 
                             border: '1px solid #1e293b', borderTop: `3px solid ${catColor}`, cursor: 'pointer', transition: 'all 0.2s',
-                            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
                         }}
                         onMouseOver={(e) => { e.currentTarget.style.borderColor = catColor; e.currentTarget.style.transform = 'translateY(-2px)'; }}
                         onMouseOut={(e) => { e.currentTarget.style.borderColor = '#1e293b'; e.currentTarget.style.transform = 'translateY(0)'; }}
                     >
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
                           <span style={{ fontSize: '10px', color: catColor, textTransform: 'uppercase', fontWeight: 'bold', letterSpacing: '0.5px' }}>
-                            {majorCatStr}
+                            {isSynthesis ? '⚡ Comparative Synthesis' : majorCatStr}
                           </span>
-                          <span style={{ fontSize: '10px', color: '#64748b' }}>&gt; {subCatStr}</span>
+                          {!isSynthesis && <span style={{ fontSize: '10px', color: '#64748b' }}>&gt; {subCatStr}</span>}
                         </div>
                         <h4 style={{ margin: '0 0 12px 0', color: '#e2e8f0', fontSize: '16px', lineHeight: '1.4', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
                             {title}
@@ -273,9 +239,6 @@ export default function App() {
                           <span style={{ fontSize: '12px', color: '#64748b' }}>
                             {new Date(item.last_modified).toLocaleDateString()}
                           </span>
-                          <span style={{ fontSize: '12px', color: '#059669', background: 'rgba(5, 150, 105, 0.1)', padding: '2px 8px', borderRadius: '12px' }}>
-                            {(item.size / 1024).toFixed(1)} KB
-                          </span>
                         </div>
                     </div>
                 )})}
@@ -283,24 +246,21 @@ export default function App() {
           </div>
         )}
 
-        {}
+        { }
         {activeTab === 'graph' && (
           <div style={{ display: 'flex', width: '100%', height: '100%' }}>
-            {/* Sidebar for Graph Actions */}
             <div style={{ width: '340px', borderRight: '1px solid #1e293b', padding: '24px', display: 'flex', flexDirection: 'column', background: '#0f172a' }}>
               <h4 style={{ margin: '0 0 8px 0', fontSize: '18px' }}>Comparative Synthesis</h4>
               <p style={{ color: '#94a3b8', fontSize: '13px', marginBottom: '24px', lineHeight: '1.5' }}>
-                Select exactly 2 reports from your library below. Claude 4.6 will analyze them together and map their conceptual intersections.
+                Select exactly 2 reports from your library below. Claude 4.6 will analyze them together and generate a glowing conceptual tether.
               </p>
               
               <button
                 onClick={handleSynthesize}
                 disabled={selectedKeys.length !== 2 || loading}
                 style={{
-                  background: selectedKeys.length === 2 ? '#10b981' : '#334155',
-                  color: selectedKeys.length === 2 ? '#fff' : '#94a3b8',
-                  border: 'none', padding: '14px', borderRadius: '8px',
-                  cursor: selectedKeys.length === 2 ? 'pointer' : 'not-allowed',
+                  background: selectedKeys.length === 2 ? '#10b981' : '#334155', color: selectedKeys.length === 2 ? '#fff' : '#94a3b8',
+                  border: 'none', padding: '14px', borderRadius: '8px', cursor: selectedKeys.length === 2 ? 'pointer' : 'not-allowed',
                   fontWeight: 'bold', marginBottom: '24px', transition: 'all 0.2s',
                   boxShadow: selectedKeys.length === 2 ? '0 4px 6px -1px rgba(16, 185, 129, 0.4)' : 'none'
                 }}
@@ -310,8 +270,9 @@ export default function App() {
 
               <h4 style={{ margin: '0 0 16px 0', fontSize: '16px', color: '#e2e8f0', borderBottom: '1px solid #1e293b', paddingBottom: '8px' }}>Select Sources</h4>
               <div style={{ flex: 1, overflowY: 'auto', paddingRight: '8px' }}>
-                {(reports || []).map((item) => {
-                  const majorCatStr = item.taxonomy?.major_category || item.taxonomy?.assigned_category || 'General Research';
+                {/* Filter OUT previous synthesis reports from this list so you only synthesize raw data */}
+                {(reports || []).filter(item => item.query_type !== 'comparative_synthesis').map((item) => {
+                  const majorCatStr = item.taxonomy?.major_category || 'General Research';
                   const subCatStr = item.taxonomy?.sub_category || 'General';
                   const catColor = getCategoryColor(majorCatStr, subCatStr);
                   const title = item.executive_summary_2page?.report_title || item.original_query || item.file_key.split('/').pop().replace('.json', '');
@@ -320,47 +281,32 @@ export default function App() {
                   <div
                     key={item.file_key}
                     style={{
-                      display: 'flex', alignItems: 'flex-start', gap: '12px', padding: '12px',
-                      marginBottom: '8px', 
+                      display: 'flex', alignItems: 'flex-start', gap: '12px', padding: '12px', marginBottom: '8px', 
                       background: selectedKeys.includes(item.file_key) ? `${catColor}22` : '#020617',
-                      borderRadius: '8px', 
-                      border: `1px solid ${selectedKeys.includes(item.file_key) ? catColor : '#1e293b'}`,
-                      borderLeft: `3px solid ${catColor}`, // Visually links to the node color
-                      transition: 'border-color 0.2s, background 0.2s'
+                      borderRadius: '8px', border: `1px solid ${selectedKeys.includes(item.file_key) ? catColor : '#1e293b'}`,
+                      borderLeft: `3px solid ${catColor}`, transition: 'border-color 0.2s, background 0.2s'
                     }}
                   >
-                    <input
-                      type="checkbox"
-                      checked={selectedKeys.includes(item.file_key)}
-                      onChange={() => toggleCheckbox(item.file_key)}
-                      style={{ marginTop: '4px', cursor: 'pointer', width: '16px', height: '16px', accentColor: catColor }}
-                    />
+                    <input type="checkbox" checked={selectedKeys.includes(item.file_key)} onChange={() => toggleCheckbox(item.file_key)} style={{ marginTop: '4px', cursor: 'pointer', width: '16px', height: '16px', accentColor: catColor }} />
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <span style={{ fontSize: '9px', color: catColor, textTransform: 'uppercase', fontWeight: 'bold', letterSpacing: '0.5px' }}>
-                        {majorCatStr}
-                      </span>
-                      <p 
-                        onClick={() => handleSelectReport(item.file_key)}
-                        style={{ cursor: 'pointer', fontSize: '13px', margin: '2px 0 4px 0', color: '#e2e8f0', lineHeight: '1.4', wordBreak: 'break-word', fontWeight: '500' }}
-                      >
+                      <span style={{ fontSize: '9px', color: catColor, textTransform: 'uppercase', fontWeight: 'bold', letterSpacing: '0.5px' }}>{majorCatStr}</span>
+                      <p onClick={() => handleSelectReport(item.file_key)} style={{ cursor: 'pointer', fontSize: '13px', margin: '2px 0 4px 0', color: '#e2e8f0', lineHeight: '1.4', fontWeight: '500' }}>
                         {title}
                       </p>
-                      <span style={{ fontSize: '11px', color: '#64748b' }}>Query: "{item.original_query || 'Unknown'}"</span>
                     </div>
                   </div>
                 )})}
               </div>
             </div>
 
-            {/* Main Graph View Area */}
             <div style={{ flex: 1, position: 'relative', height: '100%', background: '#020617' }}>
               <GraphView reports={reports || []} onSelectReport={handleSelectReport} />
             </div>
           </div>
         )}
       </div>
-
-      {/* Deep-Dive Report Modal */}
+      
+      { }
       {activeReport && <ReportModal report={activeReport} onClose={() => setActiveReport(null)} />}
     </div>
   );
