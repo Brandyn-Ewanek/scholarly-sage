@@ -14,7 +14,6 @@ export default function GraphView({ reports, onSelectReport }) {
   const hoveredNodeRef = useRef(null); 
   const [hoveredNodeId, setHoveredNodeId] = useState(null);
 
-  // 1. Filter out Nodes (Primary Research)
   const nodesData = useMemo(() => {
     if (!reports || !Array.isArray(reports) || reports.length === 0) return [];
 
@@ -25,25 +24,21 @@ export default function GraphView({ reports, onSelectReport }) {
       const subCategory = r.taxonomy?.sub_category || 'General';
       const query = r.original_query || 'Unknown Query';
       
-      // The Golden Angle Math for vibrant colors
+      // FIX: The Golden Angle Math (using Title as a fallback seed to prevent a purple sea)
+      const seedStr = majorCategory === 'General Research' ? title : majorCategory + subCategory;
       const GOLDEN_ANGLE = 137.5;
       let sum = 0;
-      for (let j = 0; j < majorCategory.length; j++) {
-          sum += majorCategory.charCodeAt(j);
+      for (let j = 0; j < seedStr.length; j++) {
+          sum += seedStr.charCodeAt(j);
       }
       const hue = (sum * GOLDEN_ANGLE) % 360;
 
-      let lightSum = 0;
-      for (let j = 0; j < subCategory.length; j++) {
-          lightSum += subCategory.charCodeAt(j);
-      }
-      const lightness = 0.45 + ((lightSum % 25) / 100); 
-
-      const colorObj = new THREE.Color().setHSL(hue / 360, 0.85, lightness);
+      const colorObj = new THREE.Color().setHSL(hue / 360, 0.85, 0.6);
       const hexColor = colorObj.getHex();
 
       const nodeSize = Math.min(Math.max((r.size / 1024) * 0.225, 0.9), 3.6);
 
+      // Map S3 PCA embeddings to 3D Space, or use a spherical random cluster as fallback
       let baseX, baseY, baseZ;
       if (r.pca_coords) {
           baseX = r.pca_coords.x; baseY = r.pca_coords.y; baseZ = r.pca_coords.z;
@@ -54,6 +49,7 @@ export default function GraphView({ reports, onSelectReport }) {
           baseZ = (Math.random() - 0.5) * clusterSpread;
       }
 
+      // Add macro orbit and micro jitter data
       const orbitSpeed = 0.001 + Math.random() * 0.003;
       const orbitPhase = Math.random() * Math.PI * 2;
       const jitterSpeed = 0.05 + Math.random() * 0.1;
@@ -67,7 +63,6 @@ export default function GraphView({ reports, onSelectReport }) {
     });
   }, [reports]);
 
-  // 2. Filter out Edges (Comparative Synthesis)
   const edgesData = useMemo(() => {
     if (!reports || !Array.isArray(reports) || reports.length === 0) return [];
     
@@ -118,7 +113,6 @@ export default function GraphView({ reports, onSelectReport }) {
     pointLight.position.set(200, 200, 200);
     scene.add(pointLight);
 
-    // --- BUILD NODES ---
     const nodeMeshes = [];
     const geometry = new THREE.SphereGeometry(1, 32, 32);
 
@@ -142,14 +136,30 @@ export default function GraphView({ reports, onSelectReport }) {
       nodeMeshes.push(sphere);
     });
 
-    // --- BUILD TETHERS (SMOKE + PARTICLES) ---
     const edgeObjects = [];
     
     edgesData.forEach(edge => {
         const sourceMesh = nodeMeshes.find(m => m.userData.id === edge.sourceId);
         const targetMesh = nodeMeshes.find(m => m.userData.id === edge.targetId);
-        if (!sourceMesh || !targetMesh) return; // Skip if nodes were deleted
+        
+        // FIX: The Legacy Fallback Crystal
+        if (!sourceMesh || !targetMesh) {
+            // If the nodes aren't found (like for older synthesis reports), render a glowing crystal instead
+            const fallbackGeo = new THREE.OctahedronGeometry(1.5);
+            const fallbackMat = new THREE.MeshStandardMaterial({ color: 0xe056fd, emissive: 0xe056fd, emissiveIntensity: 0.8 });
+            const fallbackMesh = new THREE.Mesh(fallbackGeo, fallbackMat);
+            fallbackMesh.position.set((Math.random() - 0.5) * 150, (Math.random() - 0.5) * 150, (Math.random() - 0.5) * 150);
+            
+            // Allow this crystal to be clicked just like a tether
+            fallbackMesh.userData = { id: edge.id, isEdge: true, title: edge.title };
+            scene.add(fallbackMesh);
+            
+            // Push it to edgeObjects so it gets animated and managed
+            edgeObjects.push({ isLegacy: true, mesh: fallbackMesh, id: edge.id, title: edge.title });
+            return;
+        }
 
+        // --- NEW SPIRITUAL TETHER SYSTEM ---
         // 1. The Smoky Line
         const lineMat = new THREE.LineBasicMaterial({
             color: 0xe056fd, // Bright Neon Purple
@@ -183,10 +193,10 @@ export default function GraphView({ reports, onSelectReport }) {
             particles.push(p);
         }
 
-        edgeObjects.push({ line, particles, sourceMesh, targetMesh, id: edge.id });
+        edgeObjects.push({ line, particles, sourceMesh, targetMesh, id: edge.id, isLegacy: false });
     });
 
-    // We increase line threshold so users don't have to click perfectly on a pixel
+    // Increase line raycast threshold so you don't have to click a 1-pixel exact line
     raycasterRef.current.params.Line.threshold = 4;
 
     let animationFrameId;
@@ -196,7 +206,7 @@ export default function GraphView({ reports, onSelectReport }) {
       animationFrameId = requestAnimationFrame(animate);
       const time = clock.getElapsedTime();
 
-      // Animate Nodes
+      // Animate Nodes (Macro-Orbit and Micro-Jitter)
       nodeMeshes.forEach(mesh => {
         const d = mesh.userData;
         const orbitAngle = time * d.orbitSpeed + d.orbitPhase;
@@ -223,8 +233,21 @@ export default function GraphView({ reports, onSelectReport }) {
         }
       });
 
-      // Animate Tethers
+      // Animate Edges
       edgeObjects.forEach(edgeObj => {
+          // If it's a legacy missing-connection, just spin the crystal
+          if (edgeObj.isLegacy) {
+              edgeObj.mesh.rotation.x += 0.01;
+              edgeObj.mesh.rotation.y += 0.02;
+              
+              if (hoveredNodeRef.current === edgeObj.id) {
+                  edgeObj.mesh.scale.setScalar(1.5);
+              } else {
+                  edgeObj.mesh.scale.setScalar(1.0);
+              }
+              return; // Skip the tether math below
+          }
+
           const posA = edgeObj.sourceMesh.position;
           const posB = edgeObj.targetMesh.position;
           
@@ -240,10 +263,10 @@ export default function GraphView({ reports, onSelectReport }) {
               if(p.userData.phase > 1) p.userData.phase -= 1;
               
               const t = p.userData.phase;
-              // Lerp finds the point on the line between Node A and B
+              // Lerp finds the exact point on the line between Node A and B
               const currentPos = new THREE.Vector3().copy(posA).lerp(posB, t);
               
-              // Add a swirling, chaotic jitter to the particles so they look like energy
+              // Add a swirling, chaotic jitter to the particles so they look like unstable energy
               const particleJitter = new THREE.Vector3(
                   Math.sin(time * 3 + t * 20) * 3,
                   Math.cos(time * 4 + t * 20) * 3,
@@ -289,7 +312,7 @@ export default function GraphView({ reports, onSelectReport }) {
 
         if (cameraRef.current && sceneRef.current) {
             raycasterRef.current.setFromCamera(mouseRef.current, cameraRef.current);
-            // We now check intersects against Nodes AND Lines!
+            // We now check intersects against Nodes AND Lines AND Legacy Crystals
             const intersects = raycasterRef.current.intersectObjects(sceneRef.current.children);
             const validIntersects = intersects.filter(i => i.object.userData && i.object.userData.id);
 
@@ -316,7 +339,7 @@ export default function GraphView({ reports, onSelectReport }) {
 
     const handleClick = () => {
         if (hoveredNodeRef.current) {
-            onSelectReport(hoveredNodeRef.current);
+            onSelectReport(hoveredNodeRef.current); // Works for nodes, tethers, AND crystals!
         }
     };
 
@@ -391,7 +414,7 @@ export default function GraphView({ reports, onSelectReport }) {
                       </div>
                   </>
               ) : (
-                  // TETHER/EDGE HOVER
+                  // TETHER/EDGE OR CRYSTAL HOVER
                   <>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
                           <span style={{ fontSize: '10px', background: 'rgba(224, 86, 253, 0.2)', color: '#e056fd', padding: '4px 8px', borderRadius: '12px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px' }}>

@@ -39,7 +39,6 @@ export default function App() {
       await loadReports(); 
     } catch (err) {
       console.error('Research execution failed:', err);
-      // We log to console instead of using alerts for better UI flow
     } finally {
       setLoading(false);
     }
@@ -84,27 +83,19 @@ export default function App() {
     }
   };
 
-  const getCategoryColor = (majorCat, subCat) => {
-      // Curated palette of 10 vibrant, distinct hues
-      const HUES = [15, 35, 50, 140, 180, 200, 220, 270, 320, 340];
-      const catString = String(majorCat || 'General Research');
+  const getCategoryColor = (majorCat, subCat, title) => {
+      // FIX: If it's a legacy report labeled "General Research", use the TITLE as the color seed so they are all unique!
+      const seedStr = (majorCat === 'General Research' || !majorCat) ? String(title) : String(majorCat) + String(subCat);
       
-      // Generate Base Hue using string sum mapped to our curated array
+      const GOLDEN_ANGLE = 137.5;
       let sum = 0;
-      for (let i = 0; i < catString.length; i++) {
-          sum += catString.charCodeAt(i);
+      for (let i = 0; i < seedStr.length; i++) {
+          sum += seedStr.charCodeAt(i);
       }
-      const hue = HUES[sum % HUES.length];
-
-      // Generate Shade/Lightness based on Sub-Category variance
-      const subString = String(subCat || 'General');
-      let lightSum = 0;
-      for (let i = 0; i < subString.length; i++) {
-          lightSum += subString.charCodeAt(i);
-      }
-      const lightness = 45 + (lightSum % 25); 
+      // Modulo 360 ensures it wraps perfectly around the HSL color wheel
+      const hue = (sum * GOLDEN_ANGLE) % 360;
       
-      return `hsl(${hue}, 85%, ${lightness}%)`;
+      return `hsl(${hue}, 85%, 60%)`;
   };
 
   return (
@@ -136,10 +127,9 @@ export default function App() {
         </div>
       </header>
 
-      { }
       <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
         
-        { }
+        {}
         {activeTab === 'research' && (
           <div style={{ flex: 1, padding: '40px', maxWidth: '900px', margin: '0 auto', overflowY: 'auto' }}>
             <h3 style={{ fontSize: '24px', marginBottom: '8px' }}>Query Academic Literature</h3>
@@ -162,7 +152,6 @@ export default function App() {
               </button>
             </form>
 
-            { }
             {latestSearchResult && latestSearchResult.executive_summary_2page && (
               <div style={{ background: '#0f172a', padding: '32px', borderRadius: '12px', border: '1px solid #1e293b', animation: 'fadeIn 0.5s ease-in-out' }}>
                 <div style={{ borderBottom: '1px solid #334155', paddingBottom: '20px', marginBottom: '20px' }}>
@@ -201,7 +190,7 @@ export default function App() {
           </div>
         )}
 
-        { }
+        {}
         {activeTab === 'library' && (
           <div style={{ flex: 1, padding: '40px', overflowY: 'auto' }}>
             <h3 style={{ fontSize: '24px', marginBottom: '8px' }}>Your Research Library</h3>
@@ -212,8 +201,10 @@ export default function App() {
                     const isSynthesis = item.query_type === 'comparative_synthesis';
                     const majorCatStr = item.taxonomy?.major_category || 'General Research';
                     const subCatStr = item.taxonomy?.sub_category || 'General';
-                    const catColor = isSynthesis ? '#e056fd' : getCategoryColor(majorCatStr, subCatStr);
                     const title = item.executive_summary_2page?.report_title || item.original_query || item.file_key.split('/').pop().replace('.json', '');
+                    
+                    // We pass the title here as a fallback for the unique color generation!
+                    const catColor = isSynthesis ? '#e056fd' : getCategoryColor(majorCatStr, subCatStr, title);
                     
                     return (
                     <div 
@@ -246,9 +237,11 @@ export default function App() {
           </div>
         )}
 
-        { }
+        {}
         {activeTab === 'graph' && (
           <div style={{ display: 'flex', width: '100%', height: '100%' }}>
+            
+            {/* The Sidebar that allows selecting reports for Synthesis */}
             <div style={{ width: '340px', borderRight: '1px solid #1e293b', padding: '24px', display: 'flex', flexDirection: 'column', background: '#0f172a' }}>
               <h4 style={{ margin: '0 0 8px 0', fontSize: '18px' }}>Comparative Synthesis</h4>
               <p style={{ color: '#94a3b8', fontSize: '13px', marginBottom: '24px', lineHeight: '1.5' }}>
@@ -274,8 +267,10 @@ export default function App() {
                 {(reports || []).filter(item => item.query_type !== 'comparative_synthesis').map((item) => {
                   const majorCatStr = item.taxonomy?.major_category || 'General Research';
                   const subCatStr = item.taxonomy?.sub_category || 'General';
-                  const catColor = getCategoryColor(majorCatStr, subCatStr);
                   const title = item.executive_summary_2page?.report_title || item.original_query || item.file_key.split('/').pop().replace('.json', '');
+                  
+                  // Passing the title as fallback here too!
+                  const catColor = getCategoryColor(majorCatStr, subCatStr, title);
                   
                   return (
                   <div
@@ -299,6 +294,7 @@ export default function App() {
               </div>
             </div>
 
+            {/* The 3D Engine Frame */}
             <div style={{ flex: 1, position: 'relative', height: '100%', background: '#020617' }}>
               <GraphView reports={reports || []} onSelectReport={handleSelectReport} />
             </div>
@@ -306,7 +302,7 @@ export default function App() {
         )}
       </div>
       
-      { }
+      {/* Universal Report Modal (Pops up anywhere) */}
       {activeReport && <ReportModal report={activeReport} onClose={() => setActiveReport(null)} />}
     </div>
   );
