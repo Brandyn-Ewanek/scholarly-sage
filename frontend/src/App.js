@@ -84,17 +84,30 @@ export default function App() {
   };
 
   const getCategoryColor = (majorCat, subCat, title) => {
-      // If it's a legacy report labeled "General Research", use the TITLE as the color seed so they are all unique!
-      const seedStr = (majorCat === 'General Research' || !majorCat) ? String(title) : String(majorCat) + String(subCat);
+      const isGeneral = (majorCat === 'General Research' || !majorCat);
       
+      // 1. Calculate Base HUE from Major Category (or Title if General)
+      const hueSeedStr = isGeneral ? String(title) : String(majorCat);
       const GOLDEN_ANGLE = 137.5;
-      let sum = 0;
-      for (let i = 0; i < seedStr.length; i++) {
-          sum += seedStr.charCodeAt(i);
+      let hueSum = 0;
+      for (let i = 0; i < hueSeedStr.length; i++) {
+          hueSum += hueSeedStr.charCodeAt(i);
       }
-      const hue = (sum * GOLDEN_ANGLE) % 360;
+      const hue = (hueSum * GOLDEN_ANGLE) % 360;
       
-      return `hsl(${hue}, 85%, 60%)`;
+      // 2. Calculate SHADE (Lightness) from Sub Category
+      let lightness = 60; // Default lightness is 60%
+      if (!isGeneral && subCat) {
+          let shadeSum = 0;
+          const shadeStr = String(subCat);
+          for (let i = 0; i < shadeStr.length; i++) {
+              shadeSum += shadeStr.charCodeAt(i);
+          }
+          // Vary the lightness between 45% (darker) and 75% (lighter)
+          lightness = 45 + (shadeSum % 30);
+      }
+      
+      return `hsl(${hue}, 85%, ${lightness}%)`;
   };
 
   return (
@@ -185,7 +198,6 @@ export default function App() {
                     </div>
                 </div>
 
-                {/* THE NEW PRIMARY LINK BUTTON */}
                 {latestSearchResult.executive_summary_2page.primary_link && (
                     <div style={{ textAlign: 'right', borderTop: '1px solid #1e293b', paddingTop: '16px' }}>
                         <a href={latestSearchResult.executive_summary_2page.primary_link} target="_blank" rel="noopener noreferrer" style={{ color: '#fff', background: '#0ea5e9', padding: '10px 20px', borderRadius: '6px', textDecoration: 'none', fontWeight: 'bold', fontSize: '14px', display: 'inline-block', transition: 'background 0.2s' }} onMouseOver={(e) => e.target.style.background = '#0284c7'} onMouseOut={(e) => e.target.style.background = '#0ea5e9'}>
@@ -295,6 +307,7 @@ export default function App() {
               </div>
             </div>
 
+            {}
             <div style={{ flex: 1, position: 'relative', height: '100%', background: '#020617' }}>
               <GraphView reports={reports || []} onSelectReport={handleSelectReport} />
             </div>
