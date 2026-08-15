@@ -101,27 +101,39 @@ async def list_all_reports(response: Response):
             print(f"Failed to load {r.get('file_key')}: {str(e)}")
             continue
             
-    # If we have at least 3 reports with embeddings, we can run PCA for 3D space
+    # SAFETY NET 2: PCA Crash Protection. If you have legacy files with different embedding sizes,
+    # numpy and sklearn will crash. This ensures we only use matching sizes.
     if len(valid_embeddings) >= 3:
-        pca = PCA(n_components=3)
-        # Convert to numpy array and scale up the coordinates for visual spread
-        coords_3d = pca.fit_transform(np.array(valid_embeddings)) * 200
-        
-        for idx, coords in zip(valid_indices, coords_3d):
-            full_reports[idx]["pca_coords"] = {
-                "x": float(coords[0]),
-                "y": float(coords[1]),
-                "z": float(coords[2])
-            }
+        try:
+            base_len = len(valid_embeddings[0])
+            clean_embeddings = []
+            clean_indices = []
+            for idx, emb in zip(valid_indices, valid_embeddings):
+                if len(emb) == base_len:
+                    clean_embeddings.append(emb)
+                    clean_indices.append(idx)
+                    
+            if len(clean_embeddings) >= 3:
+                pca = PCA(n_components=3)
+                # Convert to numpy array and scale up the coordinates for visual spread
+                coords_3d = pca.fit_transform(np.array(clean_embeddings)) * 200
+                
+                for idx, coords in zip(clean_indices, coords_3d):
+                    full_reports[idx]["pca_coords"] = {
+                        "x": float(coords[0]),
+                        "y": float(coords[1]),
+                        "z": float(coords[2])
+                    }
+        except Exception as e:
+            print(f"PCA Dimension Error: {str(e)}")
             
     final_reports = []
     # Clean up full_data so we don't send massive payloads to the frontend
     for r in full_reports:
-        # SAFETY NET 2: Protect against missing fields inside the JSON
+        # SAFETY NET 3: Protect against missing fields AND wrong data types inside the JSON
         try:
             data = r.get("full_data") or {}
             
-            # === BULLETPROOF SMART DETECT ===
             q_type = data.get("query_type")
             
             if not q_type:
@@ -132,8 +144,6 @@ async def list_all_reports(response: Response):
                     q_type = "primary_research"
 
             r["query_type"] = q_type
-            
-            # Use 'or []' and 'or {}' to guarantee we NEVER get a NoneType crash
             r["source_reports"] = data.get("source_reports") or []
             
             if q_type == "comparative_synthesis":
@@ -144,13 +154,17 @@ async def list_all_reports(response: Response):
                 }
             else:
                 r["original_query"] = data.get("original_query") or "Legacy Report"
-                tax = data.get("taxonomy") or {}
+                tax = data.get("taxonomy")
+                if not isinstance(tax, dict):
+                    tax = {}
                 r["taxonomy"] = {
                     "major_category": tax.get("major_category") or tax.get("assigned_category") or "General Research",
                     "sub_category": tax.get("sub_category") or "General"
                 }
             
-            summary = data.get("executive_summary_2page") or {}
+            summary = data.get("executive_summary_2page")
+            if not isinstance(summary, dict):
+                summary = {}
             r["executive_summary_2page"] = {"report_title": summary.get("report_title") or "Untitled Report"}
             
             if "full_data" in r:
@@ -166,7 +180,9 @@ async def list_all_reports(response: Response):
 
 @app.get("/api/reports/{file_key:path}")
 async def get_single_report(file_key: str):
-    """Retrieves a specific research report payload from S3 using its key path."""
+    """
+    Retrieves a specific research report payload from S3 using its key path.
+    """
     report = get_research_report(file_key)
     if not report:
         raise HTTPException(status_code=404, detail="Report not found in S3 bucket.")
@@ -222,7 +238,9 @@ async def execute_new_research(request: ResearchRequest):
 
 @app.post("/api/categorize")
 async def categorize_topic(request: CategorizeRequest):
-    """Evaluates topic keywords using Claude 3 Haiku to map or generate a major category."""
+    """
+    Evaluates topic keywords using Claude 3 Haiku to map or generate a major category.
+    """
     result = categorize_research(
         topic=request.topic,
         keywords=request.keywords,
@@ -235,7 +253,9 @@ async def categorize_topic(request: CategorizeRequest):
 
 @app.post("/api/synthesize")
 async def synthesize_reports(request: SynthesizeRequest):
-    """Pulls two report JSONs from S3 and generates a comparative synthesis."""
+    """
+    Pulls two report JSONs from S3 and generates a comparative synthesis.
+    """
     report_a = get_research_report(request.report_a_key)
     report_b = get_research_report(request.report_b_key)
 
@@ -263,7 +283,9 @@ async def synthesize_reports(request: SynthesizeRequest):
 
 @app.post("/api/save-report")
 async def save_new_report(request: SaveReportRequest):
-    """Endpoint to manually save a new research report dictionary directly to S3."""
+    """
+    Endpoint to manually save a new research report dictionary directly to S3.
+    """
     report_id = save_research_report(request.report_data)
     if not report_id:
         raise HTTPException(status_code=500, detail="Failed to save report to S3.")
