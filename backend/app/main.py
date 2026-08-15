@@ -40,7 +40,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Pydantic Request Models
 class CategorizeRequest(BaseModel):
     topic: str
     keywords: List[str]
@@ -105,17 +104,33 @@ async def list_all_reports():
     # Clean up full_data so we don't send massive payloads to the frontend
     for r in full_reports:
         if "full_data" in r:
-            # EXPOSE NEW METADATA FOR SYNTHESIS LINKS
-            r["query_type"] = r["full_data"].get("query_type", "primary_research")
+            # === SMART DETECT FOR LEGACY SYNTHESES ===
+            q_type = r["full_data"].get("query_type")
+            
+            # If the file doesn't explicitly state what it is, figure it out:
+            if not q_type:
+                if "source_reports" in r["full_data"] or "original_query" not in r["full_data"]:
+                    q_type = "comparative_synthesis"
+                else:
+                    q_type = "primary_research"
+
+            r["query_type"] = q_type
             r["source_reports"] = r["full_data"].get("source_reports", [])
             
-            r["original_query"] = r["full_data"].get("original_query", "Unknown Query")
-            
-            tax = r["full_data"].get("taxonomy", {})
-            r["taxonomy"] = {
-                "major_category": tax.get("major_category", tax.get("assigned_category", "General Research")),
-                "sub_category": tax.get("sub_category", "General")
-            }
+            # Intercept missing queries and taxonomies to fix the UI
+            if q_type == "comparative_synthesis":
+                r["original_query"] = r["full_data"].get("original_query", "Comparative Synthesis")
+                r["taxonomy"] = {
+                    "major_category": "Synthesis Engine",
+                    "sub_category": "Cross-Domain"
+                }
+            else:
+                r["original_query"] = r["full_data"].get("original_query", "Legacy Report")
+                tax = r["full_data"].get("taxonomy", {})
+                r["taxonomy"] = {
+                    "major_category": tax.get("major_category", tax.get("assigned_category", "General Research")),
+                    "sub_category": tax.get("sub_category", "General")
+                }
             
             summary = r["full_data"].get("executive_summary_2page", {})
             r["executive_summary_2page"] = {"report_title": summary.get("report_title", "")}

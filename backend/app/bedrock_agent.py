@@ -30,13 +30,11 @@ def parse_json_response(output_text: str) -> dict:
         print(f"\n--- BEDROCK JSON PARSE ERROR ---\nRaw output was:\n{output_text}\n--------------------------------\n")
         return {}
 
-
 def categorize_research(topic: str, keywords: list, existing_categories: list) -> dict:
     """
     Evaluates research keywords and assigns them to one of 20 fixed Major Categories, 
     plus generates a dynamic Sub-Category.
     """
-    # Define the fixed 20 Master Categories
     MASTER_CATEGORIES = [
         "Artificial Intelligence", "Data Science & Analytics", "Longevity & Aging",
         "Biological & Health Sciences", "Genetics & Genomics", "Neuroscience & Cognition",
@@ -80,7 +78,6 @@ def categorize_research(topic: str, keywords: list, existing_categories: list) -
     except ClientError as e:
         print(f"Bedrock API error during categorization: {e}")
         return {}
-
 
 def analyze_primary_research(paper_text: str) -> dict:
     """
@@ -134,7 +131,6 @@ def analyze_primary_research(paper_text: str) -> dict:
         print(f"Bedrock API error during primary analysis: {e}")
         return {}
 
-
 def synthesize_comparative_report(report_a: dict, report_b: dict) -> dict:
     """
     Takes two saved S3 research JSON payloads and generates a comparative synthesis.
@@ -163,6 +159,7 @@ def synthesize_comparative_report(report_a: dict, report_b: dict) -> dict:
     Return a JSON object with this exact structure:
     {{
       "executive_summary_2page": {{
+        "report_title": "String (Generate a catchy, custom title combining the core concepts of Report A and Report B)",
         "abstract_overview": "String",
         "core_findings": ["String (Must contain hard numbers/metrics)"],
         "methodology_analysis": "String",
@@ -189,7 +186,6 @@ def synthesize_comparative_report(report_a: dict, report_b: dict) -> dict:
     except ClientError as e:
         print(f"Bedrock API error during synthesis: {e}")
         return {}
-
 
 def generate_titan_embedding(text: str) -> list:
     """
