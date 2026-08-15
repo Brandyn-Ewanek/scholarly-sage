@@ -2,7 +2,7 @@ import os
 from dotenv import load_dotenv
 load_dotenv()  # Loads variables from .env file into environment at startup
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Dict, Any, Optional
@@ -162,6 +162,7 @@ async def list_all_reports(response: Response):
             continue
             
     return {"reports": final_reports}
+
 
 @app.get("/api/reports/{file_key:path}")
 async def get_single_report(file_key: str):
