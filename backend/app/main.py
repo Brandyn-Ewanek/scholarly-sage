@@ -40,6 +40,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Pydantic Request Models
 class CategorizeRequest(BaseModel):
     topic: str
     keywords: List[str]
@@ -55,6 +56,7 @@ class SaveReportRequest(BaseModel):
 class ResearchRequest(BaseModel):
     query: str
 
+
 @app.get("/")
 async def root():
     return {
@@ -62,6 +64,7 @@ async def root():
         "service": "Scholarly Sage API",
         "docs_url": "/docs"
     }
+
 
 @app.get("/api/reports")
 async def list_all_reports():
@@ -102,40 +105,42 @@ async def list_all_reports():
     # Clean up full_data so we don't send massive payloads to the frontend
     for r in full_reports:
         if "full_data" in r:
-            # === BULLETPROOF SMART DETECT FOR LEGACY SYNTHESES ===
+            # === BULLETPROOF SMART DETECT ===
             q_type = r["full_data"].get("query_type")
             
             if not q_type:
                 # Ruthless check: Only real searches have a scraped 'primary_paper'. 
-                if "source_reports" in r["full_data"] or "primary_paper" not in r["full_data"]:
+                if r["full_data"].get("source_reports") or not r["full_data"].get("primary_paper"):
                     q_type = "comparative_synthesis"
                 else:
                     q_type = "primary_research"
 
             r["query_type"] = q_type
-            r["source_reports"] = r["full_data"].get("source_reports", [])
             
-            # Intercept missing queries and taxonomies to fix the UI
+            # Use 'or []' and 'or {}' to guarantee we NEVER get a NoneType crash
+            r["source_reports"] = r["full_data"].get("source_reports") or []
+            
             if q_type == "comparative_synthesis":
-                r["original_query"] = r["full_data"].get("original_query", "Comparative Synthesis")
+                r["original_query"] = r["full_data"].get("original_query") or "Comparative Synthesis"
                 r["taxonomy"] = {
                     "major_category": "Synthesis Engine",
                     "sub_category": "Cross-Domain"
                 }
             else:
-                r["original_query"] = r["full_data"].get("original_query", "Legacy Report")
-                tax = r["full_data"].get("taxonomy", {})
+                r["original_query"] = r["full_data"].get("original_query") or "Legacy Report"
+                tax = r["full_data"].get("taxonomy") or {}
                 r["taxonomy"] = {
-                    "major_category": tax.get("major_category", tax.get("assigned_category", "General Research")),
-                    "sub_category": tax.get("sub_category", "General")
+                    "major_category": tax.get("major_category") or tax.get("assigned_category") or "General Research",
+                    "sub_category": tax.get("sub_category") or "General"
                 }
             
-            summary = r["full_data"].get("executive_summary_2page", {})
-            r["executive_summary_2page"] = {"report_title": summary.get("report_title", "")}
+            summary = r["full_data"].get("executive_summary_2page") or {}
+            r["executive_summary_2page"] = {"report_title": summary.get("report_title") or "Untitled Report"}
             
             del r["full_data"]
             
     return {"reports": full_reports}
+
 
 @app.get("/api/reports/{file_key:path}")
 async def get_single_report(file_key: str):
@@ -145,11 +150,11 @@ async def get_single_report(file_key: str):
         raise HTTPException(status_code=404, detail="Report not found in S3 bucket.")
     return report
 
+
 @app.post("/api/research")
 async def execute_new_research(request: ResearchRequest):
     """
     Searches Google Scholar, runs Bedrock fact/metric extraction, categorizes the topic, and saves JSON to S3.
-    Extracts the primary link and passes it to Claude for inclusion.
     """
     try:
         papers = search_google_scholar(request.query)
@@ -157,17 +162,18 @@ async def execute_new_research(request: ResearchRequest):
             raise HTTPException(status_code=400, detail="No academic papers found for this query or SERPAPI_API_KEY missing.")
         
         combined_text = "\n\n".join([f"Title: {p['title']}\nSnippet: {p['snippet']}\nLink: {p['link']}" for p in papers])
-        
-        # EXTRACT THE LINK AND PASS IT TO THE AI AGENT
         primary_link = papers[0].get('link', '') if papers else ''
-        research_analysis = analyze_primary_research(combined_text, primary_link)
         
+        # EXTRACT METRICS
+        research_analysis = analyze_primary_research(combined_text, primary_link)
         embedding_vector = generate_titan_embedding(combined_text)
         
         existing_tax = get_master_taxonomy()
         cat_result = categorize_research(request.query, [request.query], existing_tax)
         
-        assigned_cat = cat_result.get("classification_result", {}).get("major_category", "General Research")
+        # Fallback in case taxonomy fails
+        safe_cat_result = cat_result.get("classification_result") or {}
+        assigned_cat = safe_cat_result.get("major_category", "General Research")
         update_master_taxonomy(assigned_cat)
         
         full_report = {
@@ -175,7 +181,7 @@ async def execute_new_research(request: ResearchRequest):
             "original_query": request.query,
             "primary_paper": papers[0],
             "all_source_papers": papers,
-            "taxonomy": cat_result.get("classification_result", {}),
+            "taxonomy": safe_cat_result,
             "embedding": embedding_vector,
             **research_analysis
         }
@@ -191,6 +197,7 @@ async def execute_new_research(request: ResearchRequest):
         print(f"CRITICAL ERROR in /api/research: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Backend Error: {str(e)}")
 
+
 @app.post("/api/categorize")
 async def categorize_topic(request: CategorizeRequest):
     """Evaluates topic keywords using Claude 3 Haiku to map or generate a major category."""
@@ -203,9 +210,10 @@ async def categorize_topic(request: CategorizeRequest):
         raise HTTPException(status_code=500, detail="Failed to categorize research topic.")
     return result
 
+
 @app.post("/api/synthesize")
 async def synthesize_reports(request: SynthesizeRequest):
-    """Pulls two report JSONs from S3, generates a 2-page comparative synthesis with graph nodes/edges using Claude 3 Sonnet, and saves the new report back to S3."""
+    """Pulls two report JSONs from S3 and generates a comparative synthesis."""
     report_a = get_research_report(request.report_a_key)
     report_b = get_research_report(request.report_b_key)
 
@@ -229,6 +237,7 @@ async def synthesize_reports(request: SynthesizeRequest):
         "report_id": saved_id,
         "synthesis": synthesis_payload
     }
+
 
 @app.post("/api/save-report")
 async def save_new_report(request: SaveReportRequest):
