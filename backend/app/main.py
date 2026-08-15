@@ -40,6 +40,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Pydantic Request Models
 class CategorizeRequest(BaseModel):
     topic: str
     keywords: List[str]
@@ -104,12 +105,12 @@ async def list_all_reports():
     # Clean up full_data so we don't send massive payloads to the frontend
     for r in full_reports:
         if "full_data" in r:
-            # === SMART DETECT FOR LEGACY SYNTHESES ===
+            # === BULLETPROOF SMART DETECT FOR LEGACY SYNTHESES ===
             q_type = r["full_data"].get("query_type")
             
-            # If the file doesn't explicitly state what it is, figure it out:
             if not q_type:
-                if "source_reports" in r["full_data"] or "original_query" not in r["full_data"]:
+                # Ruthless check: Only real searches have a scraped 'primary_paper'. 
+                if "source_reports" in r["full_data"] or "primary_paper" not in r["full_data"]:
                     q_type = "comparative_synthesis"
                 else:
                     q_type = "primary_research"
