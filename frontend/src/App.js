@@ -68,44 +68,35 @@ export default function App() {
     }
   };
 
-  const handleSynthesize = async () => {
-    if (selectedKeys.length !== 2) return;
-    setLoading(true);
-    try {
-      const result = await synthesizeReports(selectedKeys[0], selectedKeys[1]);
-      setActiveReport(result.synthesis);
-      await loadReports();
-    } catch (err) {
-      console.error('Synthesis failed:', err);
-    } finally {
-      setLoading(false);
-      setSelectedKeys([]); 
+  const handleGraphClick = (fileKey) => {
+    const report = reports.find(r => r.file_key === fileKey);
+    if (report && report.query_type === 'comparative_synthesis') {
+      // If it's a tether (synthesis), open the report modal to read it
+      handleSelectReport(fileKey);
+    } else {
+      // If it's a star (primary research), toggle its checkbox for synthesis
+      toggleCheckbox(fileKey);
     }
   };
 
-  const getCategoryColor = (majorCat, subCat, title) => {
-      const isGeneral = (majorCat === 'General Research' || !majorCat);
+  const getCategoryColor = (majorCat, subCat) => {
+      // Curated palette of 10 vibrant, distinct hues
+      const HUES = [15, 35, 50, 140, 180, 200, 220, 270, 320, 340];
       
-      // 1. Calculate Base HUE from Major Category (or Title if General)
-      const hueSeedStr = isGeneral ? String(title) : String(majorCat);
-      const GOLDEN_ANGLE = 137.5;
+      const majorStr = String(majorCat || 'General Research');
       let hueSum = 0;
-      for (let i = 0; i < hueSeedStr.length; i++) {
-          hueSum += hueSeedStr.charCodeAt(i);
+      for (let i = 0; i < majorStr.length; i++) {
+          hueSum += majorStr.charCodeAt(i);
       }
-      const hue = (hueSum * GOLDEN_ANGLE) % 360;
+      const hue = HUES[hueSum % HUES.length];
       
-      // 2. Calculate SHADE (Lightness) from Sub Category
-      let lightness = 60; // Default lightness is 60%
-      if (!isGeneral && subCat) {
-          let shadeSum = 0;
-          const shadeStr = String(subCat);
-          for (let i = 0; i < shadeStr.length; i++) {
-              shadeSum += shadeStr.charCodeAt(i);
-          }
-          // Vary the lightness between 45% (darker) and 75% (lighter)
-          lightness = 45 + (shadeSum % 30);
+      const subStr = String(subCat || 'General');
+      let shadeSum = 0;
+      for (let i = 0; i < subStr.length; i++) {
+          shadeSum += subStr.charCodeAt(i);
       }
+      // Vary the lightness between 45% (darker) and 70% (lighter)
+      const lightness = 45 + (shadeSum % 25);
       
       return `hsl(${hue}, 85%, ${lightness}%)`;
   };
@@ -113,6 +104,7 @@ export default function App() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', width: '100vw', height: '100vh', background: '#020617', color: '#f8fafc', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
       
+      {}
       <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 24px', borderBottom: '1px solid #1e293b', background: '#0f172a' }}>
         <h2 style={{ margin: 0, fontSize: '22px', fontWeight: '800', background: 'linear-gradient(90deg, #38bdf8, #818cf8)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
           Scholarly Sage
@@ -222,7 +214,7 @@ export default function App() {
                     const majorCatStr = item.taxonomy?.major_category || 'General Research';
                     const subCatStr = item.taxonomy?.sub_category || 'General';
                     const title = item.executive_summary_2page?.report_title || item.original_query || item.file_key.split('/').pop().replace('.json', '');
-                    const catColor = isSynthesis ? '#e056fd' : getCategoryColor(majorCatStr, subCatStr, title);
+                    const catColor = isSynthesis ? '#e056fd' : getCategoryColor(majorCatStr, subCatStr);
                     
                     return (
                     <div 
@@ -283,7 +275,7 @@ export default function App() {
                   const majorCatStr = item.taxonomy?.major_category || 'General Research';
                   const subCatStr = item.taxonomy?.sub_category || 'General';
                   const title = item.executive_summary_2page?.report_title || item.original_query || item.file_key.split('/').pop().replace('.json', '');
-                  const catColor = getCategoryColor(majorCatStr, subCatStr, title);
+                  const catColor = getCategoryColor(majorCatStr, subCatStr);
                   
                   return (
                   <div
@@ -309,7 +301,11 @@ export default function App() {
 
             {}
             <div style={{ flex: 1, position: 'relative', height: '100%', background: '#020617' }}>
-              <GraphView reports={reports || []} onSelectReport={handleSelectReport} />
+              <GraphView 
+                reports={reports || []} 
+                onSelectReport={handleGraphClick} 
+                selectedKeys={selectedKeys} 
+              />
             </div>
           </div>
         )}
