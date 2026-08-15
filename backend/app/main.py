@@ -2,7 +2,7 @@ import os
 from dotenv import load_dotenv
 load_dotenv()  # Loads variables from .env file into environment at startup
 
-from fastapi import FastAPI, HTTPException, Response
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Dict, Any, Optional
@@ -40,7 +40,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Pydantic Request Models
 class CategorizeRequest(BaseModel):
     topic: str
     keywords: List[str]
@@ -56,7 +55,6 @@ class SaveReportRequest(BaseModel):
 class ResearchRequest(BaseModel):
     query: str
 
-
 @app.get("/")
 async def root():
     return {
@@ -65,16 +63,12 @@ async def root():
         "docs_url": "/docs"
     }
 
-
 @app.get("/api/reports")
-async def list_all_reports(response: Response):
+async def list_all_reports():
     """
     Lists all available research summaries stored in the S3 bucket.
     Applies PCA to semantic embeddings to generate 3D coordinates.
     """
-    # 1. CACHE BUSTER: Force the browser to always download the freshest data
-    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
-    
     reports = list_research_reports()
     
     full_reports = []
@@ -130,12 +124,7 @@ async def list_all_reports(response: Response):
                 }
             else:
                 r["original_query"] = r["full_data"].get("original_query", "Legacy Report")
-                
-                # 2. BULLETPROOF DICTIONARY EXTRACTION
-                tax = r["full_data"].get("taxonomy")
-                if not isinstance(tax, dict):
-                    tax = {}
-                    
+                tax = r["full_data"].get("taxonomy", {})
                 r["taxonomy"] = {
                     "major_category": tax.get("major_category", tax.get("assigned_category", "General Research")),
                     "sub_category": tax.get("sub_category", "General")
@@ -148,22 +137,19 @@ async def list_all_reports(response: Response):
             
     return {"reports": full_reports}
 
-
 @app.get("/api/reports/{file_key:path}")
 async def get_single_report(file_key: str):
-    """
-    Retrieves a specific research report payload from S3 using its key path.
-    """
+    """Retrieves a specific research report payload from S3 using its key path."""
     report = get_research_report(file_key)
     if not report:
         raise HTTPException(status_code=404, detail="Report not found in S3 bucket.")
     return report
 
-
 @app.post("/api/research")
 async def execute_new_research(request: ResearchRequest):
     """
     Searches Google Scholar, runs Bedrock fact/metric extraction, categorizes the topic, and saves JSON to S3.
+    Extracts the primary link and passes it to Claude for inclusion.
     """
     try:
         papers = search_google_scholar(request.query)
@@ -172,7 +158,10 @@ async def execute_new_research(request: ResearchRequest):
         
         combined_text = "\n\n".join([f"Title: {p['title']}\nSnippet: {p['snippet']}\nLink: {p['link']}" for p in papers])
         
-        research_analysis = analyze_primary_research(combined_text)
+        # EXTRACT THE LINK AND PASS IT TO THE AI AGENT
+        primary_link = papers[0].get('link', '') if papers else ''
+        research_analysis = analyze_primary_research(combined_text, primary_link)
+        
         embedding_vector = generate_titan_embedding(combined_text)
         
         existing_tax = get_master_taxonomy()
@@ -202,12 +191,9 @@ async def execute_new_research(request: ResearchRequest):
         print(f"CRITICAL ERROR in /api/research: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Backend Error: {str(e)}")
 
-
 @app.post("/api/categorize")
 async def categorize_topic(request: CategorizeRequest):
-    """
-    Evaluates topic keywords using Claude 3 Haiku to map or generate a major category.
-    """
+    """Evaluates topic keywords using Claude 3 Haiku to map or generate a major category."""
     result = categorize_research(
         topic=request.topic,
         keywords=request.keywords,
@@ -217,12 +203,9 @@ async def categorize_topic(request: CategorizeRequest):
         raise HTTPException(status_code=500, detail="Failed to categorize research topic.")
     return result
 
-
 @app.post("/api/synthesize")
 async def synthesize_reports(request: SynthesizeRequest):
-    """
-    Pulls two report JSONs from S3, generates a 2-page comparative synthesis with graph nodes/edges using Claude 3 Sonnet, and saves the new report back to S3.
-    """
+    """Pulls two report JSONs from S3, generates a 2-page comparative synthesis with graph nodes/edges using Claude 3 Sonnet, and saves the new report back to S3."""
     report_a = get_research_report(request.report_a_key)
     report_b = get_research_report(request.report_b_key)
 
@@ -233,14 +216,12 @@ async def synthesize_reports(request: SynthesizeRequest):
     if not synthesis_result:
         raise HTTPException(status_code=500, detail="Failed to generate comparative synthesis.")
 
-    # Structure the synthetic report payload
     synthesis_payload = {
         "query_type": "comparative_synthesis",
         "source_reports": [request.report_a_key, request.report_b_key],
         **synthesis_result
     }
 
-    # Save comparative result directly to S3 data lake
     saved_id = save_research_report(synthesis_payload)
     
     return {
@@ -249,12 +230,9 @@ async def synthesize_reports(request: SynthesizeRequest):
         "synthesis": synthesis_payload
     }
 
-
 @app.post("/api/save-report")
 async def save_new_report(request: SaveReportRequest):
-    """
-    Endpoint to manually save a new research report dictionary directly to S3.
-    """
+    """Endpoint to manually save a new research report dictionary directly to S3."""
     report_id = save_research_report(request.report_data)
     if not report_id:
         raise HTTPException(status_code=500, detail="Failed to save report to S3.")

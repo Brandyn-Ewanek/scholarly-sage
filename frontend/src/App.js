@@ -84,7 +84,7 @@ export default function App() {
   };
 
   const getCategoryColor = (majorCat, subCat, title) => {
-      // FIX: If it's a legacy report labeled "General Research", use the TITLE as the color seed so they are all unique!
+      // If it's a legacy report labeled "General Research", use the TITLE as the color seed so they are all unique!
       const seedStr = (majorCat === 'General Research' || !majorCat) ? String(title) : String(majorCat) + String(subCat);
       
       const GOLDEN_ANGLE = 137.5;
@@ -92,7 +92,6 @@ export default function App() {
       for (let i = 0; i < seedStr.length; i++) {
           sum += seedStr.charCodeAt(i);
       }
-      // Modulo 360 ensures it wraps perfectly around the HSL color wheel
       const hue = (sum * GOLDEN_ANGLE) % 360;
       
       return `hsl(${hue}, 85%, 60%)`;
@@ -171,20 +170,29 @@ export default function App() {
                 </h4>
                 <ul style={{ color: '#cbd5e1', paddingLeft: '24px', marginBottom: '28px', lineHeight: '1.7', fontSize: '15px' }}>
                     {latestSearchResult.executive_summary_2page.core_findings?.map((finding, idx) => (
-                        <li key={idx} style={{ marginBottom: '12px' }}>{finding}</li>
+                        <li key={idx} style={{ marginBottom: '12px' }} dangerouslySetInnerHTML={{__html: finding}}></li>
                     ))}
                 </ul>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', background: '#020617', padding: '20px', borderRadius: '8px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', background: '#020617', padding: '20px', borderRadius: '8px', marginBottom: '24px' }}>
                     <div>
                         <h4 style={{ color: '#f8fafc', margin: '0 0 12px 0', fontSize: '16px' }}>⚙️ Mechanism / Methodology</h4>
-                        <p style={{ color: '#cbd5e1', fontSize: '14px', lineHeight: '1.6', margin: 0 }}>{latestSearchResult.executive_summary_2page.methodology_analysis}</p>
+                        <p style={{ color: '#cbd5e1', fontSize: '14px', lineHeight: '1.6', margin: 0 }} dangerouslySetInnerHTML={{__html: latestSearchResult.executive_summary_2page.methodology_analysis}}></p>
                     </div>
                     <div>
                         <h4 style={{ color: '#f8fafc', margin: '0 0 12px 0', fontSize: '16px' }}>⚠️ Contrary Perspectives</h4>
-                        <p style={{ color: '#cbd5e1', fontSize: '14px', lineHeight: '1.6', margin: 0 }}>{latestSearchResult.executive_summary_2page.contrary_perspectives}</p>
+                        <p style={{ color: '#cbd5e1', fontSize: '14px', lineHeight: '1.6', margin: 0 }} dangerouslySetInnerHTML={{__html: latestSearchResult.executive_summary_2page.contrary_perspectives}}></p>
                     </div>
                 </div>
+
+                {/* THE NEW PRIMARY LINK BUTTON */}
+                {latestSearchResult.executive_summary_2page.primary_link && (
+                    <div style={{ textAlign: 'right', borderTop: '1px solid #1e293b', paddingTop: '16px' }}>
+                        <a href={latestSearchResult.executive_summary_2page.primary_link} target="_blank" rel="noopener noreferrer" style={{ color: '#fff', background: '#0ea5e9', padding: '10px 20px', borderRadius: '6px', textDecoration: 'none', fontWeight: 'bold', fontSize: '14px', display: 'inline-block', transition: 'background 0.2s' }} onMouseOver={(e) => e.target.style.background = '#0284c7'} onMouseOut={(e) => e.target.style.background = '#0ea5e9'}>
+                            Read Primary Source ↗
+                        </a>
+                    </div>
+                )}
               </div>
             )}
           </div>
@@ -202,8 +210,6 @@ export default function App() {
                     const majorCatStr = item.taxonomy?.major_category || 'General Research';
                     const subCatStr = item.taxonomy?.sub_category || 'General';
                     const title = item.executive_summary_2page?.report_title || item.original_query || item.file_key.split('/').pop().replace('.json', '');
-                    
-                    // We pass the title here as a fallback for the unique color generation!
                     const catColor = isSynthesis ? '#e056fd' : getCategoryColor(majorCatStr, subCatStr, title);
                     
                     return (
@@ -240,8 +246,6 @@ export default function App() {
         {}
         {activeTab === 'graph' && (
           <div style={{ display: 'flex', width: '100%', height: '100%' }}>
-            
-            {/* The Sidebar that allows selecting reports for Synthesis */}
             <div style={{ width: '340px', borderRight: '1px solid #1e293b', padding: '24px', display: 'flex', flexDirection: 'column', background: '#0f172a' }}>
               <h4 style={{ margin: '0 0 8px 0', fontSize: '18px' }}>Comparative Synthesis</h4>
               <p style={{ color: '#94a3b8', fontSize: '13px', marginBottom: '24px', lineHeight: '1.5' }}>
@@ -263,13 +267,10 @@ export default function App() {
 
               <h4 style={{ margin: '0 0 16px 0', fontSize: '16px', color: '#e2e8f0', borderBottom: '1px solid #1e293b', paddingBottom: '8px' }}>Select Sources</h4>
               <div style={{ flex: 1, overflowY: 'auto', paddingRight: '8px' }}>
-                {/* Filter OUT previous synthesis reports from this list so you only synthesize raw data */}
                 {(reports || []).filter(item => item.query_type !== 'comparative_synthesis').map((item) => {
                   const majorCatStr = item.taxonomy?.major_category || 'General Research';
                   const subCatStr = item.taxonomy?.sub_category || 'General';
                   const title = item.executive_summary_2page?.report_title || item.original_query || item.file_key.split('/').pop().replace('.json', '');
-                  
-                  // Passing the title as fallback here too!
                   const catColor = getCategoryColor(majorCatStr, subCatStr, title);
                   
                   return (
@@ -294,7 +295,6 @@ export default function App() {
               </div>
             </div>
 
-            {/* The 3D Engine Frame */}
             <div style={{ flex: 1, position: 'relative', height: '100%', background: '#020617' }}>
               <GraphView reports={reports || []} onSelectReport={handleSelectReport} />
             </div>
@@ -302,7 +302,6 @@ export default function App() {
         )}
       </div>
       
-      {/* Universal Report Modal (Pops up anywhere) */}
       {activeReport && <ReportModal report={activeReport} onClose={() => setActiveReport(null)} />}
     </div>
   );
