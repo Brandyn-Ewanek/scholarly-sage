@@ -218,6 +218,7 @@ export default function GraphView({ reports, onSelectReport, selectedKeys }) {
         mesh.position.set(currentX + jx, currentY + jy, currentZ + jz);
 
         // Visual Highlight Logic (Checked Box vs Hover vs Normal)
+        // Accessing the ref ensures we check the live state without tearing down Three.js!
         const isSelectedForSynthesis = selectedKeysRef.current.includes(d.id);
 
         if (isSelectedForSynthesis) {
@@ -336,6 +337,7 @@ export default function GraphView({ reports, onSelectReport, selectedKeys }) {
 
     const handleClick = () => {
         if (hoveredNodeRef.current) {
+            // Passes the ID back to App.js which will toggle the checkbox
             onSelectReport(hoveredNodeRef.current); 
         }
     };

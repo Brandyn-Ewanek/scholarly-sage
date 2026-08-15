@@ -79,6 +79,21 @@ export default function App() {
     }
   };
 
+  const handleSynthesize = async () => {
+    if (selectedKeys.length !== 2) return;
+    setLoading(true);
+    try {
+      const result = await synthesizeReports(selectedKeys[0], selectedKeys[1]);
+      setActiveReport(result.synthesis);
+      await loadReports();
+      setSelectedKeys([]); // Clear selection after synthesis
+    } catch (err) {
+      console.error('Synthesis failed:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const getCategoryColor = (majorCat, subCat) => {
       // Curated palette of 10 vibrant, distinct hues
       const HUES = [15, 35, 50, 140, 180, 200, 220, 270, 320, 340];
@@ -104,7 +119,6 @@ export default function App() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', width: '100vw', height: '100vh', background: '#020617', color: '#f8fafc', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
       
-      {}
       <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 24px', borderBottom: '1px solid #1e293b', background: '#0f172a' }}>
         <h2 style={{ margin: 0, fontSize: '22px', fontWeight: '800', background: 'linear-gradient(90deg, #38bdf8, #818cf8)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
           Scholarly Sage
@@ -253,7 +267,7 @@ export default function App() {
             <div style={{ width: '340px', borderRight: '1px solid #1e293b', padding: '24px', display: 'flex', flexDirection: 'column', background: '#0f172a' }}>
               <h4 style={{ margin: '0 0 8px 0', fontSize: '18px' }}>Comparative Synthesis</h4>
               <p style={{ color: '#94a3b8', fontSize: '13px', marginBottom: '24px', lineHeight: '1.5' }}>
-                Select exactly 2 reports from your library below. Claude 4.6 will analyze them together and generate a glowing conceptual tether.
+                Select exactly 2 reports from your library below. Claude 3.5 will analyze them together and generate a glowing conceptual tether.
               </p>
               
               <button
@@ -299,7 +313,7 @@ export default function App() {
               </div>
             </div>
 
-            {}
+            {/* 3D Graph Container */}
             <div style={{ flex: 1, position: 'relative', height: '100%', background: '#020617' }}>
               <GraphView 
                 reports={reports || []} 
