@@ -60,6 +60,8 @@ graph TD
 
 ### 1. ⚡ Fast Research
 
+![Research Tool](docs/scholarly-sage-dash1.png)
+
 Instant Literature Scraping: Enter any topic, and the backend instantly scrapes the most recent academic papers via SerpApi.
 
 AI Executive Summary: AWS Bedrock (Claude 3) processes the raw text to extract hard metrics, sample sizes, and novel methodologies.
@@ -68,6 +70,8 @@ Contrary Perspectives: Automatically highlights findings that defy common assump
 
 ### 2. 📚 Research Library
 
+![Research Library](docs/scholarly-sage-dash.p2ng)
+
 AWS S3 Data Lake: Every query and analysis is permanently archived as a JSON payload in an AWS S3 bucket.
 
 Dynamic Taxonomy: The AI automatically categorizes your research into one of 20 Master Categories (e.g., Biological & Health Sciences) and generates a highly specific sub-category.
@@ -75,6 +79,8 @@ Dynamic Taxonomy: The AI automatically categorizes your research into one of 20 
 Algorithmic Coloring: Cards are visually distinct, using HSL math and the Golden Angle to map text hashes to vibrant, non-clashing colors based on their category.
 
 ### 3. 🌐 5D Knowledge Graph
+
+![Knowledge Graph](docs/scholarly-sage-dash3.png)
 
 Semantic Spatial Mapping: Uses Amazon Titan Text v2 to generate 256-dimensional embeddings of your research, which are reduced via PCA to 3D coordinates (X, Y, Z).
 
