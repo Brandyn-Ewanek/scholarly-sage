@@ -67,11 +67,14 @@ async def root():
 
 
 @app.get("/api/reports")
-async def list_all_reports():
+async def list_all_reports(response: Response):
     """
     Lists all available research summaries stored in the S3 bucket.
     Applies PCA to semantic embeddings to generate 3D coordinates.
     """
+    # Cache buster to force the browser to always fetch fresh data
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    
     reports = list_research_reports()
     
     full_reports = []
@@ -79,15 +82,24 @@ async def list_all_reports():
     valid_indices = []
     
     for i, r in enumerate(reports):
-        full_data = get_research_report(r["file_key"])
-        r["full_data"] = full_data
-        full_reports.append(r)
-        
-        # Check if this report has a saved Titan embedding
-        embedding = full_data.get("embedding")
-        if embedding and isinstance(embedding, list) and len(embedding) > 0:
-            valid_embeddings.append(embedding)
-            valid_indices.append(i)
+        # SAFETY NET 1: If a file is completely corrupted, skip it instead of crashing.
+        try:
+            full_data = get_research_report(r["file_key"])
+            if not full_data or not isinstance(full_data, dict):
+                print(f"Skipping invalid report format: {r['file_key']}")
+                continue
+                
+            r["full_data"] = full_data
+            full_reports.append(r)
+            
+            # Check if this report has a saved Titan embedding
+            embedding = full_data.get("embedding")
+            if embedding and isinstance(embedding, list) and len(embedding) > 0:
+                valid_embeddings.append(embedding)
+                valid_indices.append(len(full_reports) - 1)
+        except Exception as e:
+            print(f"Failed to load {r.get('file_key')}: {str(e)}")
+            continue
             
     # If we have at least 3 reports with embeddings, we can run PCA for 3D space
     if len(valid_embeddings) >= 3:
@@ -102,15 +114,19 @@ async def list_all_reports():
                 "z": float(coords[2])
             }
             
+    final_reports = []
     # Clean up full_data so we don't send massive payloads to the frontend
     for r in full_reports:
-        if "full_data" in r:
+        # SAFETY NET 2: Protect against missing fields inside the JSON
+        try:
+            data = r.get("full_data") or {}
+            
             # === BULLETPROOF SMART DETECT ===
-            q_type = r["full_data"].get("query_type")
+            q_type = data.get("query_type")
             
             if not q_type:
                 # Ruthless check: Only real searches have a scraped 'primary_paper'. 
-                if r["full_data"].get("source_reports") or not r["full_data"].get("primary_paper"):
+                if data.get("source_reports") or not data.get("primary_paper"):
                     q_type = "comparative_synthesis"
                 else:
                     q_type = "primary_research"
@@ -118,29 +134,34 @@ async def list_all_reports():
             r["query_type"] = q_type
             
             # Use 'or []' and 'or {}' to guarantee we NEVER get a NoneType crash
-            r["source_reports"] = r["full_data"].get("source_reports") or []
+            r["source_reports"] = data.get("source_reports") or []
             
             if q_type == "comparative_synthesis":
-                r["original_query"] = r["full_data"].get("original_query") or "Comparative Synthesis"
+                r["original_query"] = data.get("original_query") or "Comparative Synthesis"
                 r["taxonomy"] = {
                     "major_category": "Synthesis Engine",
                     "sub_category": "Cross-Domain"
                 }
             else:
-                r["original_query"] = r["full_data"].get("original_query") or "Legacy Report"
-                tax = r["full_data"].get("taxonomy") or {}
+                r["original_query"] = data.get("original_query") or "Legacy Report"
+                tax = data.get("taxonomy") or {}
                 r["taxonomy"] = {
                     "major_category": tax.get("major_category") or tax.get("assigned_category") or "General Research",
                     "sub_category": tax.get("sub_category") or "General"
                 }
             
-            summary = r["full_data"].get("executive_summary_2page") or {}
+            summary = data.get("executive_summary_2page") or {}
             r["executive_summary_2page"] = {"report_title": summary.get("report_title") or "Untitled Report"}
             
-            del r["full_data"]
+            if "full_data" in r:
+                del r["full_data"]
+                
+            final_reports.append(r)
+        except Exception as e:
+            print(f"Error parsing metadata for {r.get('file_key')}: {str(e)}")
+            continue
             
-    return {"reports": full_reports}
-
+    return {"reports": final_reports}
 
 @app.get("/api/reports/{file_key:path}")
 async def get_single_report(file_key: str):
