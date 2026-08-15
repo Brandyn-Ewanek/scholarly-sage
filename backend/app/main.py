@@ -2,7 +2,7 @@ import os
 from dotenv import load_dotenv
 load_dotenv()  # Loads variables from .env file into environment at startup
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Dict, Any, Optional
@@ -67,11 +67,14 @@ async def root():
 
 
 @app.get("/api/reports")
-async def list_all_reports():
+async def list_all_reports(response: Response):
     """
     Lists all available research summaries stored in the S3 bucket.
     Applies PCA to semantic embeddings to generate 3D coordinates.
     """
+    # 1. CACHE BUSTER: Force the browser to always download the freshest data
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    
     reports = list_research_reports()
     
     full_reports = []
@@ -127,7 +130,12 @@ async def list_all_reports():
                 }
             else:
                 r["original_query"] = r["full_data"].get("original_query", "Legacy Report")
-                tax = r["full_data"].get("taxonomy", {})
+                
+                # 2. BULLETPROOF DICTIONARY EXTRACTION
+                tax = r["full_data"].get("taxonomy")
+                if not isinstance(tax, dict):
+                    tax = {}
+                    
                 r["taxonomy"] = {
                     "major_category": tax.get("major_category", tax.get("assigned_category", "General Research")),
                     "sub_category": tax.get("sub_category", "General")
