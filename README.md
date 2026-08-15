@@ -70,7 +70,7 @@ Contrary Perspectives: Automatically highlights findings that defy common assump
 
 ### 2. 📚 Research Library
 
-![Research Library](docs/scholarly-sage-dash.p2ng)
+![Research Library](docs/scholarly-sage-dash2.png)
 
 AWS S3 Data Lake: Every query and analysis is permanently archived as a JSON payload in an AWS S3 bucket.
 
