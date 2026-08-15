@@ -27,7 +27,7 @@ def parse_json_response(output_text: str) -> dict:
         except:
             return {}
 
-def analyze_primary_research(paper_text: str, primary_paper_link: str) -> dict:
+def analyze_primary_research(paper_text: str, primary_paper_link: str = "") -> dict:
     """
     Analyzes newly scraped academic papers to extract hard facts, metrics, and mechanisms.
     Upgraded to prioritize recent data, limit to 4 findings, and use HTML bolding.
@@ -89,9 +89,11 @@ def synthesize_comparative_report(report_a: dict, report_b: dict) -> dict:
     system_prompt = (
         "You are an elite Cross-Domain Research Synthesizer. Your job is to analyze two completely distinct research reports and find fascinating conceptual overlaps, shared mechanisms, or stark methodological contrasts.\n"
         "1. Generate a combined, exciting 'report_title' merging both ideas.\n"
-        "2. Focus on structural similarities and opposing philosophies.\n"
-        "3. Use HTML <b> tags to bold key terms. Do NOT use markdown **.\n"
-        "4. Output ONLY strictly valid JSON matching the requested schema."
+        "2. In the 'abstract_overview', you MUST explicitly name the two source reports you are synthesizing, and then summarize their connection.\n"
+        "3. Make the VERY FIRST bullet point in 'core_findings' the most interesting shared mechanism or conceptual overlap between the two reports.\n"
+        "4. Focus on structural similarities and opposing philosophies.\n"
+        "5. Use HTML <b> tags to bold key terms. Do NOT use markdown **.\n"
+        "6. Output ONLY strictly valid JSON matching the requested schema."
     )
     
     user_message = f"""
