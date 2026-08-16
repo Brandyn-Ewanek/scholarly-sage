@@ -66,12 +66,12 @@ export default function GraphView({ reports, onSelectReport, selectedKeys }) {
       const nodeSize = Math.min(Math.max((r.size / 1024) * 0.225, 0.9), 3.6);
 
       // DIMENSIONS 1-3: Base Semantic Coordinates
-      // SCALING UP THE UNIVERSE BY 4X FOR MASSIVE DEPTH
+      // RESTORED ORIGINAL COMPACT SCALE
       let baseX, baseY, baseZ;
       if (r.pca_coords) {
-          baseX = r.pca_coords.x * 4; baseY = r.pca_coords.y * 4; baseZ = r.pca_coords.z * 4;
+          baseX = r.pca_coords.x; baseY = r.pca_coords.y; baseZ = r.pca_coords.z;
       } else {
-          const clusterSpread = 600; 
+          const clusterSpread = 150; 
           baseX = (Math.random() - 0.5) * clusterSpread;
           baseY = (Math.random() - 0.5) * clusterSpread;
           baseZ = (Math.random() - 0.5) * clusterSpread;
@@ -138,13 +138,13 @@ export default function GraphView({ reports, onSelectReport, selectedKeys }) {
     const abyssColor = new THREE.Color('#020617'); // Matches Tailwind slate-950 perfectly
     scene.background = abyssColor;
     
-    // Expanded fog distances to match the 4X larger universe
-    scene.fog = new THREE.Fog(abyssColor, 400, 1200);
+    // Fog tuned around original camera distance (400)
+    scene.fog = new THREE.Fog(abyssColor, 200, 600);
     sceneRef.current = scene;
 
-    const camera = new THREE.PerspectiveCamera(60, width / height, 1, 3000);
-    // Pulled the camera back to see the newly expanded universe
-    camera.position.set(0, 100, 800); 
+    const camera = new THREE.PerspectiveCamera(60, width / height, 1, 2000);
+    // Restored original camera distance
+    camera.position.set(0, 50, 400); 
     cameraRef.current = camera;
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
