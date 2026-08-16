@@ -22,7 +22,7 @@ export default function GraphView({ reports, onSelectReport, selectedKeys }) {
   const hoveredNodeRef = useRef(null); 
   const [hoveredNodeId, setHoveredNodeId] = useState(null);
 
-  // Safely store props in refs to prevent the 3D canvas from ever unmounting/resetting!
+  // Safely store props in refs to prevent the 3D canvas from resetting
   const selectedKeysRef = useRef(selectedKeys || []);
   useEffect(() => {
       selectedKeysRef.current = selectedKeys || [];
@@ -66,48 +66,40 @@ export default function GraphView({ reports, onSelectReport, selectedKeys }) {
       const nodeSize = Math.min(Math.max((r.size / 1024) * 0.225, 0.9), 3.6);
 
       // DIMENSIONS 1-3: Base Semantic Coordinates
+      // SCALING UP THE UNIVERSE BY 4X FOR MASSIVE DEPTH
       let baseX, baseY, baseZ;
       if (r.pca_coords) {
-          baseX = r.pca_coords.x; baseY = r.pca_coords.y; baseZ = r.pca_coords.z;
+          baseX = r.pca_coords.x * 4; baseY = r.pca_coords.y * 4; baseZ = r.pca_coords.z * 4;
       } else {
-          const clusterSpread = 150; 
+          const clusterSpread = 600; 
           baseX = (Math.random() - 0.5) * clusterSpread;
           baseY = (Math.random() - 0.5) * clusterSpread;
           baseZ = (Math.random() - 0.5) * clusterSpread;
       }
 
-      // PRE-CALCULATE BASE ANGLE so they orbit from their true semantic location!
       const baseRadius = Math.sqrt(baseX * baseX + baseZ * baseZ);
       const baseAngle = Math.atan2(baseZ, baseX);
 
-      // Generate deterministic hash for fallbacks
       let hash = 0;
       for (let j = 0; j < r.file_key.length; j++) hash += r.file_key.charCodeAt(j);
 
-      // --- THE AMPLIFIERS ---
+      // --- THE 5D AMPLIFIERS ---
       
-      // DIMENSION 4 (w): Macro Orbit Speed
+      // DIMENSION 4 (w): Macro Orbit Speed (Turned down 20% for majestic drift)
       let rawW = r.pca_coords?.w;
       if (rawW === undefined || rawW === null || rawW === 0) rawW = hash;
       
-      // Combine rawW with the array index 'i' to GUARANTEE uniqueness.
       const uniqueSeed = (rawW * 1234567) + (i * 98765);
       const wFactor = Math.sin(uniqueSeed); 
-      
-      // Make the speeds dramatically different (from -0.25 to +0.25)
-      const orbitSpeed = wFactor * 0.25; 
+      const orbitSpeed = wFactor * 0.20; 
 
-      // DIMENSION 5 (v): Micro Jitter
-      // We force V into a massive multiplier so some nodes are calm, and others shake violently.
+      // DIMENSION 5 (v): Micro Jitter (Turned down to 30% for subtle hum)
       let rawV = r.pca_coords?.v;
       if (rawV === undefined || rawV === null || rawV === 0) rawV = (((hash * 7) % 100) - 50);
       
-      // Creates a multiplier between 0.0 and 1.0 regardless of how tiny PCA V is
       const vFactor = Math.abs(((rawV * 1000) % 50) / 50); 
-      
-      // Reduced jitter speed and amplitude to 30% of their original values for a subtle hum
-      const jitterSpeed = 1.5 + (vFactor * 7.5); 
-      const jitterAmplitude = 0.15 + (vFactor * 1.5); 
+      const jitterSpeed = 0.45 + (vFactor * 2.25); 
+      const jitterAmplitude = 0.045 + (vFactor * 0.45); 
       const jitterPhases = { x: hash % Math.PI, y: (hash * 2) % Math.PI, z: (hash * 3) % Math.PI };
 
       return {
@@ -141,12 +133,18 @@ export default function GraphView({ reports, onSelectReport, selectedKeys }) {
     const height = containerRef.current.clientHeight;
 
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color('#020617');
-    scene.fog = new THREE.FogExp2('#020617', 0.002);
+    
+    // THE DEEP ABYSS UPGRADE
+    const abyssColor = new THREE.Color('#020617'); // Matches Tailwind slate-950 perfectly
+    scene.background = abyssColor;
+    
+    // Expanded fog distances to match the 4X larger universe
+    scene.fog = new THREE.Fog(abyssColor, 400, 1200);
     sceneRef.current = scene;
 
-    const camera = new THREE.PerspectiveCamera(60, width / height, 1, 2000);
-    camera.position.set(0, 50, 400); 
+    const camera = new THREE.PerspectiveCamera(60, width / height, 1, 3000);
+    // Pulled the camera back to see the newly expanded universe
+    camera.position.set(0, 100, 800); 
     cameraRef.current = camera;
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -158,17 +156,21 @@ export default function GraphView({ reports, onSelectReport, selectedKeys }) {
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.05;
-    // Turn OFF global rotation! In a featureless black void, a spinning camera 
-    // creates an optical illusion that makes independent node speeds impossible to perceive.
-    controls.autoRotate = false;
+    controls.autoRotate = false; // Camera remains locked so individual speeds are visible
     controlsRef.current = controls;
 
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.85); 
+    // SCENE LIGHTING
+    const ambientLight = new THREE.AmbientLight('#0f172a', 1.2); // Slate-900 tint for shadows
     scene.add(ambientLight);
     
     const pointLight = new THREE.PointLight(0xffffff, 1.5, 1000); 
     pointLight.position.set(200, 200, 200);
     scene.add(pointLight);
+
+    // The Abyss Under-glow
+    const abyssLight = new THREE.DirectionalLight('#38bdf8', 0.8);
+    abyssLight.position.set(0, -400, 0); // Shining up from the void
+    scene.add(abyssLight);
 
     const nodeMeshes = [];
     const geometry = new THREE.SphereGeometry(1, 32, 32);
@@ -211,6 +213,7 @@ export default function GraphView({ reports, onSelectReport, selectedKeys }) {
             return;
         }
 
+        // Emerald Tethers
         const lineMat = new THREE.LineBasicMaterial({
             color: 0x10b981, transparent: true, opacity: 0.3, blending: THREE.AdditiveBlending, linewidth: 2
         });
@@ -222,7 +225,7 @@ export default function GraphView({ reports, onSelectReport, selectedKeys }) {
         const particles = [];
         const pGeo = new THREE.SphereGeometry(0.5, 16, 16);
         const pMat = new THREE.MeshBasicMaterial({ 
-            color: 0xffa502, transparent: true, opacity: 0.8, blending: THREE.AdditiveBlending 
+            color: 0x10b981, transparent: true, opacity: 0.8, blending: THREE.AdditiveBlending // Emerald Particles
         });
         
         for(let i=0; i<6; i++) {
@@ -246,14 +249,12 @@ export default function GraphView({ reports, onSelectReport, selectedKeys }) {
       nodeMeshes.forEach(mesh => {
         const d = mesh.userData;
         
-        // UPGRADED 4D Orbit Drift: Uses true semantic base angle!
         const orbitAngle = d.baseAngle + (time * d.orbitSpeed);
         
         const currentX = Math.cos(orbitAngle) * d.baseRadius;
         const currentZ = Math.sin(orbitAngle) * d.baseRadius;
         const currentY = d.basePos.y;
 
-        // UPGRADED 5D Micro-Jitter: High frequency vibration!
         const jx = Math.sin(time * d.jitterSpeed + d.jitterPhases.x) * d.jitterAmplitude;
         const jy = Math.cos(time * d.jitterSpeed + d.jitterPhases.y) * d.jitterAmplitude;
         const jz = Math.sin(time * d.jitterSpeed * 1.2 + d.jitterPhases.z) * d.jitterAmplitude;
@@ -376,7 +377,6 @@ export default function GraphView({ reports, onSelectReport, selectedKeys }) {
     };
 
     const handleClick = () => {
-        // Safe execution using the ref prevents React from tearing down the scene!
         if (hoveredNodeRef.current && onSelectReportRef.current) {
             onSelectReportRef.current(hoveredNodeRef.current); 
         }
