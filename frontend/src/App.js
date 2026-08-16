@@ -71,10 +71,8 @@ export default function App() {
   const handleGraphClick = (fileKey) => {
     const report = reports.find(r => r.file_key === fileKey);
     if (report && report.query_type === 'comparative_synthesis') {
-      // If it's a tether (synthesis), open the report modal to read it
       handleSelectReport(fileKey);
     } else {
-      // If it's a star (primary research), toggle its checkbox for synthesis
       toggleCheckbox(fileKey);
     }
   };
@@ -86,32 +84,41 @@ export default function App() {
       const result = await synthesizeReports(selectedKeys[0], selectedKeys[1]);
       setActiveReport(result.synthesis);
       await loadReports();
-      setSelectedKeys([]); // Clear selection after synthesis
     } catch (err) {
       console.error('Synthesis failed:', err);
     } finally {
       setLoading(false);
+      setSelectedKeys([]); 
     }
   };
 
-  const getCategoryColor = (majorCat, subCat) => {
-      // Curated palette of 10 vibrant, distinct hues
+  // Safe HTML parser to unescape brackets
+  const safeHTML = (text) => {
+      if (!text) return { __html: '' };
+      return { __html: String(text).replace(/&lt;/g, '<').replace(/&gt;/g, '>') };
+  };
+
+  const getCategoryColor = (majorCat, subCat, title) => {
+      const isGeneral = (majorCat === 'General Research' || !majorCat);
+      const hueSeedStr = isGeneral ? String(title) : String(majorCat);
+      
       const HUES = [15, 35, 50, 140, 180, 200, 220, 270, 320, 340];
       
-      const majorStr = String(majorCat || 'General Research');
       let hueSum = 0;
-      for (let i = 0; i < majorStr.length; i++) {
-          hueSum += majorStr.charCodeAt(i);
+      for (let i = 0; i < hueSeedStr.length; i++) {
+          hueSum += hueSeedStr.charCodeAt(i);
       }
       const hue = HUES[hueSum % HUES.length];
       
-      const subStr = String(subCat || 'General');
-      let shadeSum = 0;
-      for (let i = 0; i < subStr.length; i++) {
-          shadeSum += subStr.charCodeAt(i);
+      let lightness = 60; 
+      if (!isGeneral && subCat) {
+          let shadeSum = 0;
+          const shadeStr = String(subCat);
+          for (let i = 0; i < shadeStr.length; i++) {
+              shadeSum += shadeStr.charCodeAt(i);
+          }
+          lightness = 45 + (shadeSum % 30);
       }
-      // Vary the lightness between 45% (darker) and 70% (lighter)
-      const lightness = 45 + (shadeSum % 25);
       
       return `hsl(${hue}, 85%, ${lightness}%)`;
   };
@@ -147,7 +154,7 @@ export default function App() {
 
       <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
         
-        {}
+        {/* TAB 1: FAST RESEARCH */}
         {activeTab === 'research' && (
           <div style={{ flex: 1, padding: '40px', maxWidth: '900px', margin: '0 auto', overflowY: 'auto' }}>
             <h3 style={{ fontSize: '24px', marginBottom: '8px' }}>Query Academic Literature</h3>
@@ -189,18 +196,18 @@ export default function App() {
                 </h4>
                 <ul style={{ color: '#cbd5e1', paddingLeft: '24px', marginBottom: '28px', lineHeight: '1.7', fontSize: '15px' }}>
                     {latestSearchResult.executive_summary_2page.core_findings?.map((finding, idx) => (
-                        <li key={idx} style={{ marginBottom: '12px' }} dangerouslySetInnerHTML={{__html: finding}}></li>
+                        <li key={idx} style={{ marginBottom: '12px' }} dangerouslySetInnerHTML={safeHTML(finding)}></li>
                     ))}
                 </ul>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', background: '#020617', padding: '20px', borderRadius: '8px', marginBottom: '24px' }}>
                     <div>
                         <h4 style={{ color: '#f8fafc', margin: '0 0 12px 0', fontSize: '16px' }}>⚙️ Mechanism / Methodology</h4>
-                        <p style={{ color: '#cbd5e1', fontSize: '14px', lineHeight: '1.6', margin: 0 }} dangerouslySetInnerHTML={{__html: latestSearchResult.executive_summary_2page.methodology_analysis}}></p>
+                        <p style={{ color: '#cbd5e1', fontSize: '14px', lineHeight: '1.6', margin: 0 }} dangerouslySetInnerHTML={safeHTML(latestSearchResult.executive_summary_2page.methodology_analysis)}></p>
                     </div>
                     <div>
                         <h4 style={{ color: '#f8fafc', margin: '0 0 12px 0', fontSize: '16px' }}>⚠️ Contrary Perspectives</h4>
-                        <p style={{ color: '#cbd5e1', fontSize: '14px', lineHeight: '1.6', margin: 0 }} dangerouslySetInnerHTML={{__html: latestSearchResult.executive_summary_2page.contrary_perspectives}}></p>
+                        <p style={{ color: '#cbd5e1', fontSize: '14px', lineHeight: '1.6', margin: 0 }} dangerouslySetInnerHTML={safeHTML(latestSearchResult.executive_summary_2page.contrary_perspectives)}></p>
                     </div>
                 </div>
 
@@ -216,7 +223,7 @@ export default function App() {
           </div>
         )}
 
-        {}
+        {/* TAB 2: LIBRARY */}
         {activeTab === 'library' && (
           <div style={{ flex: 1, padding: '40px', overflowY: 'auto' }}>
             <h3 style={{ fontSize: '24px', marginBottom: '8px' }}>Your Research Library</h3>
@@ -228,7 +235,7 @@ export default function App() {
                     const majorCatStr = item.taxonomy?.major_category || 'General Research';
                     const subCatStr = item.taxonomy?.sub_category || 'General';
                     const title = item.executive_summary_2page?.report_title || item.original_query || item.file_key.split('/').pop().replace('.json', '');
-                    const catColor = isSynthesis ? '#e056fd' : getCategoryColor(majorCatStr, subCatStr);
+                    const catColor = isSynthesis ? '#e056fd' : getCategoryColor(majorCatStr, subCatStr, title);
                     
                     return (
                     <div 
@@ -261,9 +268,11 @@ export default function App() {
           </div>
         )}
 
-        {}
+        {/* TAB 3: 5D KNOWLEDGE GRAPH */}
         {activeTab === 'graph' && (
           <div style={{ display: 'flex', width: '100%', height: '100%' }}>
+            
+            {/* Left Sidebar */}
             <div style={{ width: '340px', borderRight: '1px solid #1e293b', padding: '24px', display: 'flex', flexDirection: 'column', background: '#0f172a' }}>
               <h4 style={{ margin: '0 0 8px 0', fontSize: '18px' }}>Comparative Synthesis</h4>
               <p style={{ color: '#94a3b8', fontSize: '13px', marginBottom: '24px', lineHeight: '1.5' }}>
@@ -289,7 +298,7 @@ export default function App() {
                   const majorCatStr = item.taxonomy?.major_category || 'General Research';
                   const subCatStr = item.taxonomy?.sub_category || 'General';
                   const title = item.executive_summary_2page?.report_title || item.original_query || item.file_key.split('/').pop().replace('.json', '');
-                  const catColor = getCategoryColor(majorCatStr, subCatStr);
+                  const catColor = getCategoryColor(majorCatStr, subCatStr, title);
                   
                   return (
                   <div

@@ -30,7 +30,6 @@ def parse_json_response(output_text: str) -> dict:
 def analyze_primary_research(paper_text: str, primary_paper_link: str = "") -> dict:
     """
     Analyzes newly scraped academic papers to extract hard facts, metrics, and mechanisms.
-    Upgraded to prioritize recent data, limit to 4 findings, and use HTML bolding.
     """
     system_prompt = (
         "You are a Lead Data Scientist and Senior Research Analyst. Your job is to extract HARD FACTS, SPECIFIC METRICS, NOVEL MECHANISMS, and COUNTER-INTUITIVE FINDINGS from academic literature.\n\n"
@@ -38,7 +37,7 @@ def analyze_primary_research(paper_text: str, primary_paper_link: str = "") -> d
         "1. BE EXTREMELY CONCISE. Use punchy, rapid-fire bullet points.\n"
         "2. Maximum 1-2 short sentences per section.\n"
         "3. Generate a catchy, memorable 'report_title' (3-6 words).\n"
-        "4. Use HTML <b> tags to bold key terms, metrics, and mechanisms to make the text easily scannable. Do NOT use markdown **.\n\n"
+        "4. Use HTML <b> tags to bold key terms, metrics, and mechanisms to make the text easily scannable. Do NOT escape the brackets (use <b>, not &lt;b&gt;). Do NOT use markdown **.\n\n"
         "MANDATORY EXTRACTION RULES:\n"
         "1. CORE FINDINGS: You MUST extract exactly FOUR (4) distinct core findings. Focus randomly on the most interesting research from the last 5 years first, and then the last 10 years.\n"
         "2. QUANTIFY EVERYTHING: Always include specific numbers, sample sizes (N=), percentages, or p-values if available in the text.\n"
@@ -89,10 +88,11 @@ def synthesize_comparative_report(report_a: dict, report_b: dict) -> dict:
     system_prompt = (
         "You are an elite Cross-Domain Research Synthesizer. Your job is to analyze two completely distinct research reports and find fascinating conceptual overlaps, shared mechanisms, or stark methodological contrasts.\n"
         "1. Generate a combined, exciting 'report_title' merging both ideas.\n"
-        "2. In the 'abstract_overview', you MUST explicitly name the two source reports you are synthesizing, and then summarize their connection.\n"
+        "2. For the 'abstract_overview', you MUST format the string as an HTML unordered list introducing the reports. Example format:\n"
+        "<ul><li><b>Report A:</b> [Name & 1 sentence summary]</li><li><b>Report B:</b> [Name & 1 sentence summary]</li><li><b>Synthesis:</b> [1 sentence on how they connect]</li></ul>\n"
         "3. Make the VERY FIRST bullet point in 'core_findings' the most interesting shared mechanism or conceptual overlap between the two reports.\n"
         "4. Focus on structural similarities and opposing philosophies.\n"
-        "5. Use HTML <b> tags to bold key terms. Do NOT use markdown **.\n"
+        "5. Use standard HTML <b> tags to bold key terms. Do NOT escape the brackets (e.g. use <b> not &lt;b&gt;). Do NOT use markdown **.\n"
         "6. Output ONLY strictly valid JSON matching the requested schema."
     )
     
