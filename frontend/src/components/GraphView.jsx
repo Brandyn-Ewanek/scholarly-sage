@@ -90,12 +90,12 @@ export default function GraphView({ reports, onSelectReport, selectedKeys }) {
       let rawW = r.pca_coords?.w;
       if (rawW === undefined || rawW === null || rawW === 0) rawW = hash;
       
-      // By wrapping W in a Sine wave with a massive multiplier, we guarantee that 
-      // even microscopic decimals map evenly from -1.0 (backward) to 1.0 (forward)
-      const wFactor = Math.sin(rawW * 1234567); 
+      // Combine rawW with the array index 'i' to GUARANTEE uniqueness.
+      const uniqueSeed = (rawW * 1234567) + (i * 98765);
+      const wFactor = Math.sin(uniqueSeed); 
       
-      // Set individual orbit speeds. Some fast, some slow, some backward!
-      const orbitSpeed = wFactor * 0.15; 
+      // Make the speeds dramatically different (from -0.25 to +0.25)
+      const orbitSpeed = wFactor * 0.25; 
 
       // DIMENSION 5 (v): Micro Jitter
       // We force V into a massive multiplier so some nodes are calm, and others shake violently.
@@ -158,9 +158,9 @@ export default function GraphView({ reports, onSelectReport, selectedKeys }) {
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.05;
-    controls.autoRotate = true;
-    // Slow down the global camera spin so individual node speeds stand out
-    controls.autoRotateSpeed = 0.1;
+    // Turn OFF global rotation! In a featureless black void, a spinning camera 
+    // creates an optical illusion that makes independent node speeds impossible to perceive.
+    controls.autoRotate = false;
     controlsRef.current = controls;
 
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.85); 
