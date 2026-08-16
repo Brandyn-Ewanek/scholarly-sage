@@ -176,40 +176,19 @@ export default function GraphView({ reports, onSelectReport, selectedKeys }) {
     const geometry = new THREE.SphereGeometry(1, 32, 32);
 
     nodesData.forEach(data => {
-      // 1. THE CLEAR GLASS SHELL
-      const glassMaterial = new THREE.MeshPhysicalMaterial({
-        color: 0xffffff,        // Pure clear glass
-        emissive: 0x000000,     // The glass itself DOES NOT GLOW
-        roughness: 0.1,         // Very slightly frosted
-        metalness: 0.1,
-        transmission: 1.0,      // 100% transparent glass
-        ior: 1.5,               // Real-world glass refraction index
-        thickness: 2.0,         // Thick glass to warp the light behind it
-        clearcoat: 1.0,         // Ultra-shiny exterior
-        clearcoatRoughness: 0.05,
-        transparent: true
+      // REVERTED: Solid, vibrant glowing nodes
+      const material = new THREE.MeshStandardMaterial({
+        color: data.color, emissive: data.color, emissiveIntensity: 0.8, roughness: 0.2, metalness: 0.8
       });
-      
-      const sphere = new THREE.Mesh(geometry, glassMaterial);
+      const sphere = new THREE.Mesh(geometry, material);
       sphere.scale.setScalar(data.size);
-      
-      // 2. THE GLOWING CORE (Inside the glass)
-      const coreMaterial = new THREE.MeshStandardMaterial({
-          color: data.color,
-          emissive: data.color,
-          emissiveIntensity: 1.5, // Bright concentrated energy
-          roughness: 0.5
-      });
-      const core = new THREE.Mesh(geometry, coreMaterial);
-      core.scale.setScalar(0.55); // Sits suspended inside the glass
-      sphere.add(core);
 
-      // 3. THE OUTER HALO GLOW
+      // Outer Halo Glow
       const glowMaterial = new THREE.MeshBasicMaterial({
-        color: data.color, transparent: true, opacity: 0.15, blending: THREE.AdditiveBlending, depthWrite: false
+        color: data.color, transparent: true, opacity: 0.2, blending: THREE.AdditiveBlending, depthWrite: false
       });
       const glow = new THREE.Mesh(geometry, glowMaterial);
-      glow.scale.setScalar(1.4); 
+      glow.scale.setScalar(1.3);
       sphere.add(glow);
 
       sphere.position.copy(data.basePos);
@@ -229,7 +208,6 @@ export default function GraphView({ reports, onSelectReport, selectedKeys }) {
             const fallbackMat = new THREE.MeshStandardMaterial({ color: 0x10b981, emissive: 0x10b981, emissiveIntensity: 0.8 });
             const fallbackMesh = new THREE.Mesh(fallbackGeo, fallbackMat);
             fallbackMesh.position.set((Math.random() - 0.5) * 150, (Math.random() - 0.5) * 150, (Math.random() - 0.5) * 150);
-            
             fallbackMesh.userData = { id: edge.id, isEdge: true, title: edge.title };
             scene.add(fallbackMesh);
             edgeObjects.push({ isLegacy: true, mesh: fallbackMesh, id: edge.id, title: edge.title });
@@ -245,15 +223,21 @@ export default function GraphView({ reports, onSelectReport, selectedKeys }) {
         line.userData = { id: edge.id, isEdge: true, title: edge.title, sourceMesh, targetMesh };
         scene.add(line);
 
+        // THE DNA HELIX ENERGY PARTICLES
         const particles = [];
-        const pGeo = new THREE.SphereGeometry(0.5, 16, 16);
+        const pGeo = new THREE.SphereGeometry(0.3, 16, 16);
         const pMat = new THREE.MeshBasicMaterial({ 
-            color: 0x10b981, transparent: true, opacity: 0.8, blending: THREE.AdditiveBlending // Emerald Particles
+            color: 0x38bdf8, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending // Bright cyan/blue contrast
         });
         
-        for(let i=0; i<6; i++) {
+        // 12 particles split into two interwoven strands
+        for(let i=0; i<12; i++) {
             const p = new THREE.Mesh(pGeo, pMat);
-            p.userData = { phase: i * (1/6) }; 
+            p.userData = { 
+                phase: i * (1/12),
+                helixOffset: (i % 2 === 0) ? Math.PI : 0, // 180 degree offset for second strand
+                speed: 0.002 + (Math.random() * 0.001)
+            }; 
             scene.add(p);
             particles.push(p);
         }
@@ -287,23 +271,23 @@ export default function GraphView({ reports, onSelectReport, selectedKeys }) {
         const isSelectedForSynthesis = selectedKeysRef.current.includes(d.id);
 
         if (isSelectedForSynthesis) {
-            mesh.children[0].material.emissiveIntensity = 3.0; // Core goes supernova
-            mesh.children[1].material.opacity = 0.8;           // Halo gets dense
+            mesh.material.emissiveIntensity = 2.0; 
+            mesh.children[0].material.opacity = 0.8;           
             mesh.scale.setScalar(d.size * 1.6);
-            mesh.children[0].material.emissive.setHex(0xffffff); 
-            mesh.children[1].material.color.setHex(0xffffff); 
+            mesh.material.emissive.setHex(0xffffff); 
+            mesh.children[0].material.color.setHex(0xffffff); 
         } else if (hoveredNodeRef.current === d.id) {
-            mesh.children[0].material.emissiveIntensity = 2.0; 
-            mesh.children[1].material.opacity = 0.4; 
+            mesh.material.emissiveIntensity = 1.5; 
+            mesh.children[0].material.opacity = 0.5; 
             mesh.scale.setScalar(d.size * 1.3);
-            mesh.children[0].material.emissive.setHex(d.color); 
-            mesh.children[1].material.color.setHex(d.color);
+            mesh.material.emissive.setHex(d.color); 
+            mesh.children[0].material.color.setHex(d.color);
         } else {
-            mesh.children[0].material.emissiveIntensity = 1.0; // Standard core
-            mesh.children[1].material.opacity = 0.15;          // Standard halo
+            mesh.material.emissiveIntensity = 0.8; 
+            mesh.children[0].material.opacity = 0.2;          
             mesh.scale.setScalar(d.size);
-            mesh.children[0].material.emissive.setHex(d.color);
-            mesh.children[1].material.color.setHex(d.color);
+            mesh.material.emissive.setHex(d.color);
+            mesh.children[0].material.color.setHex(d.color);
         }
       });
 
@@ -328,18 +312,29 @@ export default function GraphView({ reports, onSelectReport, selectedKeys }) {
           positions[3] = posB.x; positions[4] = posB.y; positions[5] = posB.z;
           edgeObj.line.geometry.attributes.position.needsUpdate = true;
 
+          // Vector math to create a dynamic spiral path
+          const dir = new THREE.Vector3().subVectors(posB, posA).normalize();
+          const up = new THREE.Vector3(0, 1, 0);
+          let right = new THREE.Vector3().crossVectors(dir, up);
+          if (right.lengthSq() < 0.001) right.set(1, 0, 0); // Failsafe if looking straight down
+          right.normalize();
+          const up2 = new THREE.Vector3().crossVectors(right, dir).normalize();
+
           edgeObj.particles.forEach(p => {
-              p.userData.phase += 0.003; 
+              p.userData.phase += p.userData.speed; 
               if(p.userData.phase > 1) p.userData.phase -= 1;
               const t = p.userData.phase;
               const currentPos = new THREE.Vector3().copy(posA).lerp(posB, t);
               
-              const particleJitter = new THREE.Vector3(
-                  Math.sin(time * 3 + t * 20) * 3,
-                  Math.cos(time * 4 + t * 20) * 3,
-                  Math.sin(time * 5 + t * 20) * 3
-              );
-              currentPos.add(particleJitter);
+              // DNA Helix swelling and pinching mathematical model
+              const radius = Math.sin(t * Math.PI) * 3.5;
+              const angle = (time * 4) + p.userData.helixOffset + (t * Math.PI * 6); 
+
+              const spiralOffset = new THREE.Vector3()
+                  .addScaledVector(right, Math.cos(angle) * radius)
+                  .addScaledVector(up2, Math.sin(angle) * radius);
+
+              currentPos.add(spiralOffset);
               p.position.copy(currentPos);
               p.scale.setScalar(0.5 + Math.sin(t * Math.PI) * 1.5);
           });
@@ -348,7 +343,8 @@ export default function GraphView({ reports, onSelectReport, selectedKeys }) {
               edgeObj.line.material.opacity = 0.9;
               edgeObj.line.material.color.setHex(0xffffff); 
           } else {
-              edgeObj.line.material.opacity = 0.3;
+              // Smooth, subtle pulsing energy for the base tether
+              edgeObj.line.material.opacity = 0.15 + (Math.sin(time * 2 + edgeObj.id.charCodeAt(0)) * 0.15);
               edgeObj.line.material.color.setHex(0x10b981); 
           }
       });
