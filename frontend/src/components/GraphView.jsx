@@ -428,6 +428,19 @@ export default function GraphView({ reports, onSelectReport, selectedKeys }) {
   return (
     <div ref={containerRef} style={{ width: '100%', height: '100%', position: 'relative', background: '#020617', overflow: 'hidden' }}>
       
+      {/* CINEMATIC PERIPHERAL BLUR OVERLAY */}
+      <div style={{
+          position: 'absolute',
+          inset: 0,
+          pointerEvents: 'none',
+          zIndex: 5,
+          backdropFilter: 'blur(5px)',
+          WebkitBackdropFilter: 'blur(5px)',
+          /* This creates the vertical ellipse in the middle third, grading out to the blur! */
+          maskImage: 'radial-gradient(ellipse 35% 100% at center, transparent 50%, black 100%)',
+          WebkitMaskImage: 'radial-gradient(ellipse 35% 100% at center, transparent 50%, black 100%)'
+      }} />
+
       <div style={{ position: 'absolute', top: '24px', left: '24px', zIndex: 10, pointerEvents: 'none' }}>
         <h3 style={{ margin: 0, color: '#f8fafc', fontSize: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <span style={{ display: 'inline-block', width: '8px', height: '8px', background: '#38bdf8', borderRadius: '50%', boxShadow: '0 0 10px #38bdf8', animation: 'pulse 2s infinite' }}></span>
