@@ -434,11 +434,11 @@ export default function GraphView({ reports, onSelectReport, selectedKeys }) {
           inset: 0,
           pointerEvents: 'none',
           zIndex: 5,
-          backdropFilter: 'blur(5px)',
-          WebkitBackdropFilter: 'blur(5px)',
-          /* This creates the vertical ellipse in the middle third, grading out to the blur! */
-          maskImage: 'radial-gradient(ellipse 35% 100% at center, transparent 50%, black 100%)',
-          WebkitMaskImage: 'radial-gradient(ellipse 35% 100% at center, transparent 50%, black 100%)'
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+          /* This creates the vertical ellipse: sharpened the transparent center and cranked the blur */
+          maskImage: 'radial-gradient(ellipse 30% 100% at center, transparent 40%, black 90%)',
+          WebkitMaskImage: 'radial-gradient(ellipse 30% 100% at center, transparent 40%, black 90%)'
       }} />
 
       <div style={{ position: 'absolute', top: '24px', left: '24px', zIndex: 10, pointerEvents: 'none' }}>
