@@ -21,8 +21,7 @@ Neuroscience research—most notably the foundational studies by [Kang et al. (2
 The application is built on a decoupled frontend/backend architecture, utilizing AWS for heavy lifting, vector generation, and data lake storage.
 
 ```mermaid
-graph TD
-    flowchart LR
+flowchart LR
     %% Define Nodes
     User((User))
     Vercel["fa:fa-desktop React Frontend<br/>(Vercel)"]
