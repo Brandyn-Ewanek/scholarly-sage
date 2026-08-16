@@ -28,7 +28,6 @@ export default function GraphView({ reports, onSelectReport, selectedKeys }) {
       selectedKeysRef.current = selectedKeys || [];
   }, [selectedKeys]);
 
-  // THIS is the missing line that caused the crash/reset!
   const onSelectReportRef = useRef(onSelectReport);
   useEffect(() => {
       onSelectReportRef.current = onSelectReport;
@@ -66,7 +65,7 @@ export default function GraphView({ reports, onSelectReport, selectedKeys }) {
 
       const nodeSize = Math.min(Math.max((r.size / 1024) * 0.225, 0.9), 3.6);
 
-      // DIMENSIONS 1-3: Base Coordinates
+      // DIMENSIONS 1-3: Base Semantic Coordinates
       let baseX, baseY, baseZ;
       if (r.pca_coords) {
           baseX = r.pca_coords.x; baseY = r.pca_coords.y; baseZ = r.pca_coords.z;
@@ -77,26 +76,41 @@ export default function GraphView({ reports, onSelectReport, selectedKeys }) {
           baseZ = (Math.random() - 0.5) * clusterSpread;
       }
 
-      // Generate deterministic hash for fallbacks if library is too small for true PCA
+      // PRE-CALCULATE BASE ANGLE so they orbit from their true semantic location!
+      const baseRadius = Math.sqrt(baseX * baseX + baseZ * baseZ);
+      const baseAngle = Math.atan2(baseZ, baseX);
+
+      // Generate deterministic hash for fallbacks
       let hash = 0;
       for (let j = 0; j < r.file_key.length; j++) hash += r.file_key.charCodeAt(j);
 
-      // DIMENSION 4 (w): Macro Orbit 
-      // Multiplied to ensure visual variation. Uses hash fallback if PCA lacks 4 dimensions.
-      const w = r.pca_coords?.w || ((hash % 100) - 50);
-      const orbitSpeed = 0.0005 + (Math.abs(w) / 200) * 0.008; 
-      const orbitPhase = (w / 100) * Math.PI * 2;
+      // --- THE AMPLIFIERS ---
+      
+      // DIMENSION 4 (w): Macro Orbit Speed
+      // We force W into a massive multiplier so some nodes sit still, while others orbit fast.
+      let rawW = r.pca_coords?.w;
+      if (rawW === undefined || rawW === null || rawW === 0) rawW = ((hash % 100) - 50);
+      
+      // Creates a multiplier between -1.0 and 1.0 regardless of how tiny PCA W is
+      const wFactor = ((rawW * 1000) % 50) / 50; 
+      const orbitSpeed = wFactor * 0.8; // Fast, highly visible orbital drift!
 
       // DIMENSION 5 (v): Micro Jitter
-      // Multiplied to amplify amplitude. Uses hash fallback if PCA lacks 5 dimensions.
-      const v = r.pca_coords?.v || (((hash * 7) % 100) - 50);
-      const jitterSpeed = 0.02 + (Math.abs(v) / 100) * 0.15;
-      const jitterAmplitude = (Math.abs(v) / 100) * 4.5; 
+      // We force V into a massive multiplier so some nodes are calm, and others shake violently.
+      let rawV = r.pca_coords?.v;
+      if (rawV === undefined || rawV === null || rawV === 0) rawV = (((hash * 7) % 100) - 50);
+      
+      // Creates a multiplier between 0.0 and 1.0 regardless of how tiny PCA V is
+      const vFactor = Math.abs(((rawV * 1000) % 50) / 50); 
+      
+      const jitterSpeed = 5.0 + (vFactor * 25.0); // High-frequency vibration (5 to 30 hz)
+      const jitterAmplitude = 0.5 + (vFactor * 5.0); // Visible shake distance
       const jitterPhases = { x: hash % Math.PI, y: (hash * 2) % Math.PI, z: (hash * 3) % Math.PI };
 
       return {
         id: r.file_key, title, category: majorCategory, subCategory, query, size: nodeSize, color: hexColor,
-        basePos: new THREE.Vector3(baseX, baseY, baseZ), orbitSpeed, orbitPhase, jitterSpeed, jitterAmplitude, jitterPhases, userData: r, w, v
+        basePos: new THREE.Vector3(baseX, baseY, baseZ), baseAngle, baseRadius, orbitSpeed, 
+        jitterSpeed, jitterAmplitude, jitterPhases, userData: r, w: rawW, v: rawV
       };
     });
   }, [reports]);
@@ -228,15 +242,14 @@ export default function GraphView({ reports, onSelectReport, selectedKeys }) {
       nodeMeshes.forEach(mesh => {
         const d = mesh.userData;
         
-        // Apply 4D Orbit Drift
-        const orbitAngle = time * d.orbitSpeed + d.orbitPhase;
-        const radius = Math.sqrt(d.basePos.x * d.basePos.x + d.basePos.z * d.basePos.z);
+        // UPGRADED 4D Orbit Drift: Uses true semantic base angle!
+        const orbitAngle = d.baseAngle + (time * d.orbitSpeed);
         
-        const currentX = Math.cos(orbitAngle) * radius;
-        const currentZ = Math.sin(orbitAngle) * radius;
+        const currentX = Math.cos(orbitAngle) * d.baseRadius;
+        const currentZ = Math.sin(orbitAngle) * d.baseRadius;
         const currentY = d.basePos.y;
 
-        // Apply 5D Micro-Jitter
+        // UPGRADED 5D Micro-Jitter: High frequency vibration!
         const jx = Math.sin(time * d.jitterSpeed + d.jitterPhases.x) * d.jitterAmplitude;
         const jy = Math.cos(time * d.jitterSpeed + d.jitterPhases.y) * d.jitterAmplitude;
         const jz = Math.sin(time * d.jitterSpeed * 1.2 + d.jitterPhases.z) * d.jitterAmplitude;
@@ -381,7 +394,7 @@ export default function GraphView({ reports, onSelectReport, selectedKeys }) {
       }
       document.body.style.cursor = 'default';
     };
-  }, [nodesData, edgesData]); // Completely protected from selectedKeys resets!
+  }, [nodesData, edgesData]); 
 
   const hoveredData = useMemo(() => {
       let data = nodesData.find(n => n.id === hoveredNodeId);
@@ -429,8 +442,8 @@ export default function GraphView({ reports, onSelectReport, selectedKeys }) {
                       <h4 style={{ margin: '0 0 8px 0', color: '#f8fafc', fontSize: '16px', lineHeight: '1.4' }}>{hoveredData.title}</h4>
                       <p style={{ margin: '0 0 12px 0', fontSize: '13px', color: '#38bdf8', fontWeight: 'bold' }}>Click to select for synthesis</p>
                       <div style={{ fontSize: '12px', color: '#94a3b8', display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #1e293b', paddingTop: '12px' }}>
-                         <span>Dim 4 (W): {hoveredData.w?.toFixed(1) || '0.0'}</span>
-                         <span>Dim 5 (V): {hoveredData.v?.toFixed(1) || '0.0'}</span>
+                         <span>Dim 4 (Orbit): {(hoveredData.orbitSpeed * 100).toFixed(1)}</span>
+                         <span>Dim 5 (Jitter): {hoveredData.jitterSpeed.toFixed(1)}</span>
                       </div>
                   </>
               ) : (
