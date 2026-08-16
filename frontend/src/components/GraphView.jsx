@@ -176,29 +176,40 @@ export default function GraphView({ reports, onSelectReport, selectedKeys }) {
     const geometry = new THREE.SphereGeometry(1, 32, 32);
 
     nodesData.forEach(data => {
-      // THE FROSTED GLASS UPGRADE
-      const material = new THREE.MeshPhysicalMaterial({
-        color: data.color, 
-        emissive: data.color, 
-        emissiveIntensity: 0.5, // Slightly lower base glow so you can see the glass
-        roughness: 0.15,        // Slightly frosted interior
-        metalness: 0.1,         // Glass is non-metallic
-        transmission: 0.9,      // Glass-like transparency
-        ior: 1.5,               // Mathematical index of refraction for real glass
-        thickness: 1.5,         // Optical volume for light to scatter through
-        clearcoat: 1.0,         // Ultra-shiny outer shell
-        clearcoatRoughness: 0.1,
+      // 1. THE CLEAR GLASS SHELL
+      const glassMaterial = new THREE.MeshPhysicalMaterial({
+        color: 0xffffff,        // Pure clear glass
+        emissive: 0x000000,     // The glass itself DOES NOT GLOW
+        roughness: 0.1,         // Very slightly frosted
+        metalness: 0.1,
+        transmission: 1.0,      // 100% transparent glass
+        ior: 1.5,               // Real-world glass refraction index
+        thickness: 2.0,         // Thick glass to warp the light behind it
+        clearcoat: 1.0,         // Ultra-shiny exterior
+        clearcoatRoughness: 0.05,
         transparent: true
       });
       
-      const sphere = new THREE.Mesh(geometry, material);
+      const sphere = new THREE.Mesh(geometry, glassMaterial);
       sphere.scale.setScalar(data.size);
       
+      // 2. THE GLOWING CORE (Inside the glass)
+      const coreMaterial = new THREE.MeshStandardMaterial({
+          color: data.color,
+          emissive: data.color,
+          emissiveIntensity: 1.5, // Bright concentrated energy
+          roughness: 0.5
+      });
+      const core = new THREE.Mesh(geometry, coreMaterial);
+      core.scale.setScalar(0.55); // Sits suspended inside the glass
+      sphere.add(core);
+
+      // 3. THE OUTER HALO GLOW
       const glowMaterial = new THREE.MeshBasicMaterial({
-        color: data.color, transparent: true, opacity: 0.3, blending: THREE.AdditiveBlending, depthWrite: false
+        color: data.color, transparent: true, opacity: 0.15, blending: THREE.AdditiveBlending, depthWrite: false
       });
       const glow = new THREE.Mesh(geometry, glowMaterial);
-      glow.scale.setScalar(1.3); 
+      glow.scale.setScalar(1.4); 
       sphere.add(glow);
 
       sphere.position.copy(data.basePos);
@@ -276,23 +287,23 @@ export default function GraphView({ reports, onSelectReport, selectedKeys }) {
         const isSelectedForSynthesis = selectedKeysRef.current.includes(d.id);
 
         if (isSelectedForSynthesis) {
-            mesh.material.emissiveIntensity = 2.0; 
-            mesh.children[0].material.opacity = 1.0; 
+            mesh.children[0].material.emissiveIntensity = 3.0; // Core goes supernova
+            mesh.children[1].material.opacity = 0.8;           // Halo gets dense
             mesh.scale.setScalar(d.size * 1.6);
-            mesh.material.emissive.setHex(0xffffff); 
-            mesh.children[0].material.color.setHex(0xffffff); 
+            mesh.children[0].material.emissive.setHex(0xffffff); 
+            mesh.children[1].material.color.setHex(0xffffff); 
         } else if (hoveredNodeRef.current === d.id) {
-            mesh.material.emissiveIntensity = 1.2; 
-            mesh.children[0].material.opacity = 0.8; 
+            mesh.children[0].material.emissiveIntensity = 2.0; 
+            mesh.children[1].material.opacity = 0.4; 
             mesh.scale.setScalar(d.size * 1.3);
-            mesh.material.emissive.setHex(d.color); 
-            mesh.children[0].material.color.setHex(d.color);
+            mesh.children[0].material.emissive.setHex(d.color); 
+            mesh.children[1].material.color.setHex(d.color);
         } else {
-            mesh.material.emissiveIntensity = 0.5; // Restored to the Frosted Glass base intensity
-            mesh.children[0].material.opacity = 0.3; 
+            mesh.children[0].material.emissiveIntensity = 1.0; // Standard core
+            mesh.children[1].material.opacity = 0.15;          // Standard halo
             mesh.scale.setScalar(d.size);
-            mesh.material.emissive.setHex(d.color);
-            mesh.children[0].material.color.setHex(d.color);
+            mesh.children[0].material.emissive.setHex(d.color);
+            mesh.children[1].material.color.setHex(d.color);
         }
       });
 
