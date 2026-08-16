@@ -93,7 +93,8 @@ export default function GraphView({ reports, onSelectReport, selectedKeys }) {
       
       // Creates a multiplier between -1.0 and 1.0 regardless of how tiny PCA W is
       const wFactor = ((rawW * 1000) % 50) / 50; 
-      const orbitSpeed = wFactor * 0.8; // Fast, highly visible orbital drift!
+      // Reduced orbital speed by 20% (0.8 -> 0.64)
+      const orbitSpeed = wFactor * 0.64; 
 
       // DIMENSION 5 (v): Micro Jitter
       // We force V into a massive multiplier so some nodes are calm, and others shake violently.
@@ -103,8 +104,9 @@ export default function GraphView({ reports, onSelectReport, selectedKeys }) {
       // Creates a multiplier between 0.0 and 1.0 regardless of how tiny PCA V is
       const vFactor = Math.abs(((rawV * 1000) % 50) / 50); 
       
-      const jitterSpeed = 5.0 + (vFactor * 25.0); // High-frequency vibration (5 to 30 hz)
-      const jitterAmplitude = 0.5 + (vFactor * 5.0); // Visible shake distance
+      // Reduced jitter speed and amplitude to 30% of their original values for a subtle hum
+      const jitterSpeed = 1.5 + (vFactor * 7.5); 
+      const jitterAmplitude = 0.15 + (vFactor * 1.5); 
       const jitterPhases = { x: hash % Math.PI, y: (hash * 2) % Math.PI, z: (hash * 3) % Math.PI };
 
       return {
