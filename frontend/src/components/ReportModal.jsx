@@ -1,11 +1,21 @@
 import React from 'react';
 
+// Helper to strip HTML from titles so the header is always clean text
+const cleanTitle = (text) => {
+    if (!text) return "Untitled Report";
+    return String(text)
+        .replace(/&lt;\/?b&gt;/gi, "")
+        .replace(/<\/?[^>]+(>|$)/g, "");
+};
+
 export default function ReportModal({ report, onClose }) {
   if (!report) return null;
 
   const summary = report.executive_summary_2page || {};
   const isSynthesis = report.query_type === 'comparative_synthesis';
+  const reportTitle = cleanTitle(summary.report_title);
 
+  // Un-escapes HTML brackets so the bolding actually applies!
   const safeHTML = (text) => {
       if (!text) return { __html: '' };
       return { __html: String(text).replace(/&lt;/g, '<').replace(/&gt;/g, '>') };
@@ -13,7 +23,8 @@ export default function ReportModal({ report, onClose }) {
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', zIndex: 100, display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '40px' }}>
-      <div style={{ background: '#0f172a', width: '100%', maxWidth: '900px', maxHeight: '90vh', borderRadius: '12px', border: `1px solid ${isSynthesis ? '#e056fd' : '#38bdf8'}`, overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)' }}>
+      {/* REPLACED: Changed Synthesis border to Emerald Green (#10b981) */}
+      <div style={{ background: '#0f172a', width: '100%', maxWidth: '900px', maxHeight: '90vh', borderRadius: '12px', border: `1px solid ${isSynthesis ? '#10b981' : '#38bdf8'}`, overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)' }}>
         
         {/* Header */}
         <div style={{ padding: '20px 32px', borderBottom: '1px solid #1e293b', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#020617' }}>
@@ -27,11 +38,13 @@ export default function ReportModal({ report, onClose }) {
 
         {/* Scrollable Content */}
         <div style={{ padding: '32px', overflowY: 'auto', flex: 1, color: '#e2e8f0' }}>
-          <h1 style={{ color: isSynthesis ? '#e056fd' : '#38bdf8', marginTop: 0, marginBottom: '24px', fontSize: '32px' }}>
-            {summary.report_title || 'Untitled Report'}
+          
+          {/* REPLACED: Changed Synthesis Title to Emerald Green (#10b981) */}
+          <h1 style={{ color: isSynthesis ? '#10b981' : '#38bdf8', marginTop: 0, marginBottom: '24px', fontSize: '32px' }}>
+            {reportTitle}
           </h1>
 
-          {/* Abstract - Using safeHTML to render our new bullet points and bolding! */}
+          {/* Abstract - Using dangerouslySetInnerHTML to render bold tags */}
           {summary.abstract_overview && (
             <>
               <h3 style={{ color: '#f8fafc', fontSize: '20px', borderBottom: '1px solid #334155', paddingBottom: '8px', marginBottom: '16px' }}>Abstract Overview</h3>
@@ -39,7 +52,7 @@ export default function ReportModal({ report, onClose }) {
             </>
           )}
 
-          {/* Findings */}
+          {/* Findings - Using dangerouslySetInnerHTML to render bold tags */}
           {summary.core_findings && summary.core_findings.length > 0 && (
             <>
               <h3 style={{ color: '#f8fafc', fontSize: '20px', borderBottom: '1px solid #334155', paddingBottom: '8px', marginBottom: '16px' }}>Core Findings & Metrics</h3>
@@ -51,7 +64,7 @@ export default function ReportModal({ report, onClose }) {
             </>
           )}
 
-          {/* Methodology */}
+          {/* Methodology - Using dangerouslySetInnerHTML to render bold tags */}
           {summary.methodology_analysis && (
             <>
               <h3 style={{ color: '#f8fafc', fontSize: '20px', borderBottom: '1px solid #334155', paddingBottom: '8px', marginBottom: '16px' }}>Methodology Analysis</h3>
@@ -59,7 +72,7 @@ export default function ReportModal({ report, onClose }) {
             </>
           )}
 
-          {/* Contrary Perspectives */}
+          {/* Contrary Perspectives - Using dangerouslySetInnerHTML to render bold tags */}
           {summary.contrary_perspectives && (
             <>
               <h3 style={{ color: '#f8fafc', fontSize: '20px', borderBottom: '1px solid #334155', paddingBottom: '8px', marginBottom: '16px' }}>Contrary Perspectives</h3>
@@ -67,7 +80,7 @@ export default function ReportModal({ report, onClose }) {
             </>
           )}
 
-          {/* Implications */}
+          {/* Implications - Using dangerouslySetInnerHTML to render bold tags */}
           {summary.strategic_implications && (
             <>
               <h3 style={{ color: '#f8fafc', fontSize: '20px', borderBottom: '1px solid #334155', paddingBottom: '8px', marginBottom: '16px' }}>Strategic Implications</h3>

@@ -3,6 +3,14 @@ import { fetchAllReports, fetchReportByKey, synthesizeReports, executeResearch }
 import GraphView from './components/GraphView';
 import ReportModal from './components/ReportModal';
 
+// Helper to strip any rogue HTML tags out of the title!
+const cleanTitle = (text) => {
+    if (!text) return "Untitled";
+    return String(text)
+        .replace(/&lt;\/?b&gt;/gi, "")  // Remove escaped bold tags
+        .replace(/<\/?[^>]+(>|$)/g, ""); // Remove all standard HTML
+};
+
 export default function App() {
   const [activeTab, setActiveTab] = useState('research'); 
   const [reports, setReports] = useState([]);
@@ -92,7 +100,6 @@ export default function App() {
     }
   };
 
-  // Safe HTML parser to unescape brackets
   const safeHTML = (text) => {
       if (!text) return { __html: '' };
       return { __html: String(text).replace(/&lt;/g, '<').replace(/&gt;/g, '>') };
@@ -100,9 +107,10 @@ export default function App() {
 
   const getCategoryColor = (majorCat, subCat, title) => {
       const isGeneral = (majorCat === 'General Research' || !majorCat);
-      const hueSeedStr = isGeneral ? String(title) : String(majorCat);
       
+      // Curated Palette of base Hues
       const HUES = [15, 35, 50, 140, 180, 200, 220, 270, 320, 340];
+      const hueSeedStr = isGeneral ? String(title) : String(majorCat);
       
       let hueSum = 0;
       for (let i = 0; i < hueSeedStr.length; i++) {
@@ -154,7 +162,7 @@ export default function App() {
 
       <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
         
-        {/* TAB 1: FAST RESEARCH */}
+        {}
         {activeTab === 'research' && (
           <div style={{ flex: 1, padding: '40px', maxWidth: '900px', margin: '0 auto', overflowY: 'auto' }}>
             <h3 style={{ fontSize: '24px', marginBottom: '8px' }}>Query Academic Literature</h3>
@@ -184,7 +192,7 @@ export default function App() {
                         {latestSearchResult.taxonomy?.major_category || 'General Research'}
                     </span>
                     <h2 style={{ margin: '16px 0 8px 0', color: '#38bdf8', fontSize: '28px', lineHeight: '1.3' }}>
-                        {latestSearchResult.executive_summary_2page.report_title || 'Research Analysis'}
+                        {cleanTitle(latestSearchResult.executive_summary_2page.report_title)}
                     </h2>
                     <p style={{ color: '#94a3b8', margin: 0, fontSize: '14px' }}>
                         ✓ Scraped {latestSearchResult.all_source_papers?.length || 0} papers &nbsp;|&nbsp; ✓ Saved to AWS S3
@@ -223,7 +231,7 @@ export default function App() {
           </div>
         )}
 
-        {/* TAB 2: LIBRARY */}
+        {}
         {activeTab === 'library' && (
           <div style={{ flex: 1, padding: '40px', overflowY: 'auto' }}>
             <h3 style={{ fontSize: '24px', marginBottom: '8px' }}>Your Research Library</h3>
@@ -234,8 +242,10 @@ export default function App() {
                     const isSynthesis = item.query_type === 'comparative_synthesis';
                     const majorCatStr = item.taxonomy?.major_category || 'General Research';
                     const subCatStr = item.taxonomy?.sub_category || 'General';
-                    const title = item.executive_summary_2page?.report_title || item.original_query || item.file_key.split('/').pop().replace('.json', '');
-                    const catColor = isSynthesis ? '#e056fd' : getCategoryColor(majorCatStr, subCatStr, title);
+                    const title = cleanTitle(item.executive_summary_2page?.report_title || item.original_query || item.file_key.split('/').pop().replace('.json', ''));
+                    
+                    // REPLACED: Changed Synthesis theme to Emerald Green (#10b981)
+                    const catColor = isSynthesis ? '#10b981' : getCategoryColor(majorCatStr, subCatStr, title);
                     
                     return (
                     <div 
@@ -252,7 +262,6 @@ export default function App() {
                           <span style={{ fontSize: '10px', color: catColor, textTransform: 'uppercase', fontWeight: 'bold', letterSpacing: '0.5px' }}>
                             {isSynthesis ? '⚡ Comparative Synthesis' : majorCatStr}
                           </span>
-                          {!isSynthesis && <span style={{ fontSize: '10px', color: '#64748b' }}>&gt; {subCatStr}</span>}
                         </div>
                         <h4 style={{ margin: '0 0 12px 0', color: '#e2e8f0', fontSize: '16px', lineHeight: '1.4', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
                             {title}
@@ -268,11 +277,10 @@ export default function App() {
           </div>
         )}
 
-        {/* TAB 3: 5D KNOWLEDGE GRAPH */}
+        {}
         {activeTab === 'graph' && (
           <div style={{ display: 'flex', width: '100%', height: '100%' }}>
             
-            {/* Left Sidebar */}
             <div style={{ width: '340px', borderRight: '1px solid #1e293b', padding: '24px', display: 'flex', flexDirection: 'column', background: '#0f172a' }}>
               <h4 style={{ margin: '0 0 8px 0', fontSize: '18px' }}>Comparative Synthesis</h4>
               <p style={{ color: '#94a3b8', fontSize: '13px', marginBottom: '24px', lineHeight: '1.5' }}>
@@ -297,7 +305,7 @@ export default function App() {
                 {(reports || []).filter(item => item.query_type !== 'comparative_synthesis').map((item) => {
                   const majorCatStr = item.taxonomy?.major_category || 'General Research';
                   const subCatStr = item.taxonomy?.sub_category || 'General';
-                  const title = item.executive_summary_2page?.report_title || item.original_query || item.file_key.split('/').pop().replace('.json', '');
+                  const title = cleanTitle(item.executive_summary_2page?.report_title || item.original_query || item.file_key.split('/').pop().replace('.json', ''));
                   const catColor = getCategoryColor(majorCatStr, subCatStr, title);
                   
                   return (
@@ -322,7 +330,6 @@ export default function App() {
               </div>
             </div>
 
-            {/* 3D Graph Container */}
             <div style={{ flex: 1, position: 'relative', height: '100%', background: '#020617' }}>
               <GraphView 
                 reports={reports || []} 

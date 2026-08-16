@@ -2,6 +2,14 @@ import React, { useEffect, useRef, useMemo, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
+// Helper to strip HTML from titles so the 3D Graph doesn't render tags
+const cleanTitle = (text) => {
+    if (!text) return "Untitled";
+    return String(text)
+        .replace(/&lt;\/?b&gt;/gi, "")
+        .replace(/<\/?[^>]+(>|$)/g, "");
+};
+
 export default function GraphView({ reports, onSelectReport, selectedKeys }) {
   const containerRef = useRef(null);
   const rendererRef = useRef(null);
@@ -14,8 +22,6 @@ export default function GraphView({ reports, onSelectReport, selectedKeys }) {
   const hoveredNodeRef = useRef(null); 
   const [hoveredNodeId, setHoveredNodeId] = useState(null);
 
-  // We use a ref to safely track selectedKeys inside the Three.js animation loop 
-  // without constantly rebuilding the entire 3D scene every time you click a checkbox
   const selectedKeysRef = useRef(selectedKeys || []);
   useEffect(() => {
       selectedKeysRef.current = selectedKeys || [];
@@ -26,34 +32,37 @@ export default function GraphView({ reports, onSelectReport, selectedKeys }) {
 
     return reports.filter(r => r.query_type !== 'comparative_synthesis').map((r, i) => {
       const filename = r.file_key.split('/').pop().replace('.json', '');
-      const title = r.executive_summary_2page?.report_title || filename.replace(/-/g, ' ');
+      const rawTitle = r.executive_summary_2page?.report_title || filename.replace(/-/g, ' ');
+      const title = cleanTitle(rawTitle); // Strip HTML
       const majorCategory = r.taxonomy?.major_category || 'General Research';
       const subCategory = r.taxonomy?.sub_category || 'General';
       const query = r.original_query || 'Unknown Query';
       
-      // 1. Curated color matching App.js perfectly!
+      const isGeneral = majorCategory === 'General Research';
+      
       const HUES = [15, 35, 50, 140, 180, 200, 220, 270, 320, 340];
-      const majorStr = String(majorCategory);
+      const hueSeedStr = isGeneral ? title : majorCategory;
       let hueSum = 0;
-      for (let j = 0; j < majorStr.length; j++) {
-          hueSum += majorStr.charCodeAt(j);
+      for (let j = 0; j < hueSeedStr.length; j++) {
+          hueSum += hueSeedStr.charCodeAt(j);
       }
       const hue = HUES[hueSum % HUES.length];
 
-      const subStr = String(subCategory);
-      let shadeSum = 0;
-      for (let j = 0; j < subStr.length; j++) {
-          shadeSum += subStr.charCodeAt(j);
+      let lightness = 0.60;
+      if (!isGeneral && subCategory) {
+          let shadeSum = 0;
+          const shadeStr = String(subCategory);
+          for (let j = 0; j < shadeStr.length; j++) {
+              shadeSum += shadeStr.charCodeAt(j);
+          }
+          lightness = 0.45 + ((shadeSum % 30) / 100);
       }
-      // Lightness mapped cleanly between 0.45 and 0.70
-      const lightness = 0.45 + ((shadeSum % 25) / 100);
 
       const colorObj = new THREE.Color().setHSL(hue / 360, 0.85, lightness);
       const hexColor = colorObj.getHex();
 
       const nodeSize = Math.min(Math.max((r.size / 1024) * 0.225, 0.9), 3.6);
 
-      // PCA Coordinates
       let baseX, baseY, baseZ;
       if (r.pca_coords) {
           baseX = r.pca_coords.x; baseY = r.pca_coords.y; baseZ = r.pca_coords.z;
@@ -64,7 +73,6 @@ export default function GraphView({ reports, onSelectReport, selectedKeys }) {
           baseZ = (Math.random() - 0.5) * clusterSpread;
       }
 
-      // Orbital parameters
       const orbitSpeed = 0.001 + Math.random() * 0.003;
       const orbitPhase = Math.random() * Math.PI * 2;
       const jitterSpeed = 0.05 + Math.random() * 0.1;
@@ -82,7 +90,8 @@ export default function GraphView({ reports, onSelectReport, selectedKeys }) {
     if (!reports || !Array.isArray(reports) || reports.length === 0) return [];
     
     return reports.filter(r => r.query_type === 'comparative_synthesis').map(r => {
-        const title = r.executive_summary_2page?.report_title || "Comparative Synthesis Report";
+        let rawTitle = r.executive_summary_2page?.report_title || "Comparative Synthesis Report";
+        const title = cleanTitle(rawTitle); // Strip HTML
         return {
             id: r.file_key,
             sourceId: r.source_reports?.[0],
@@ -157,9 +166,10 @@ export default function GraphView({ reports, onSelectReport, selectedKeys }) {
         const sourceMesh = nodeMeshes.find(m => m.userData.id === edge.sourceId);
         const targetMesh = nodeMeshes.find(m => m.userData.id === edge.targetId);
         
+        // REPLACED: Changed all tethers/synthesis objects to Emerald Green (0x10b981)
         if (!sourceMesh || !targetMesh) {
             const fallbackGeo = new THREE.OctahedronGeometry(1.5);
-            const fallbackMat = new THREE.MeshStandardMaterial({ color: 0xe056fd, emissive: 0xe056fd, emissiveIntensity: 0.8 });
+            const fallbackMat = new THREE.MeshStandardMaterial({ color: 0x10b981, emissive: 0x10b981, emissiveIntensity: 0.8 });
             const fallbackMesh = new THREE.Mesh(fallbackGeo, fallbackMat);
             fallbackMesh.position.set((Math.random() - 0.5) * 150, (Math.random() - 0.5) * 150, (Math.random() - 0.5) * 150);
             
@@ -170,7 +180,7 @@ export default function GraphView({ reports, onSelectReport, selectedKeys }) {
         }
 
         const lineMat = new THREE.LineBasicMaterial({
-            color: 0xe056fd, transparent: true, opacity: 0.3, blending: THREE.AdditiveBlending, linewidth: 2
+            color: 0x10b981, transparent: true, opacity: 0.3, blending: THREE.AdditiveBlending, linewidth: 2
         });
         const lineGeo = new THREE.BufferGeometry().setFromPoints([sourceMesh.position, targetMesh.position]);
         const line = new THREE.Line(lineGeo, lineMat);
@@ -201,7 +211,6 @@ export default function GraphView({ reports, onSelectReport, selectedKeys }) {
       animationFrameId = requestAnimationFrame(animate);
       const time = clock.getElapsedTime();
 
-      // Animate Nodes
       nodeMeshes.forEach(mesh => {
         const d = mesh.userData;
         const orbitAngle = time * d.orbitSpeed + d.orbitPhase;
@@ -217,21 +226,19 @@ export default function GraphView({ reports, onSelectReport, selectedKeys }) {
 
         mesh.position.set(currentX + jx, currentY + jy, currentZ + jz);
 
-        // Visual Highlight Logic (Checked Box vs Hover vs Normal)
-        // Accessing the ref ensures we check the live state without tearing down Three.js!
         const isSelectedForSynthesis = selectedKeysRef.current.includes(d.id);
 
         if (isSelectedForSynthesis) {
             mesh.material.emissiveIntensity = 2.0; 
             mesh.children[0].material.opacity = 1.0; 
             mesh.scale.setScalar(d.size * 1.6);
-            mesh.material.emissive.setHex(0xffffff); // Supercharged white glow
+            mesh.material.emissive.setHex(0xffffff); 
             mesh.children[0].material.color.setHex(0xffffff); 
         } else if (hoveredNodeRef.current === d.id) {
             mesh.material.emissiveIntensity = 1.2; 
             mesh.children[0].material.opacity = 0.8; 
             mesh.scale.setScalar(d.size * 1.3);
-            mesh.material.emissive.setHex(d.color); // Restore native color
+            mesh.material.emissive.setHex(d.color); 
             mesh.children[0].material.color.setHex(d.color);
         } else {
             mesh.material.emissiveIntensity = 0.6; 
@@ -242,7 +249,6 @@ export default function GraphView({ reports, onSelectReport, selectedKeys }) {
         }
       });
 
-      // Animate Edges
       edgeObjects.forEach(edgeObj => {
           if (edgeObj.isLegacy) {
               edgeObj.mesh.rotation.x += 0.01;
@@ -285,7 +291,7 @@ export default function GraphView({ reports, onSelectReport, selectedKeys }) {
               edgeObj.line.material.color.setHex(0xffffff); 
           } else {
               edgeObj.line.material.opacity = 0.3;
-              edgeObj.line.material.color.setHex(0xe056fd);
+              edgeObj.line.material.color.setHex(0x10b981); // Emerald Green
           }
       });
 
@@ -337,7 +343,6 @@ export default function GraphView({ reports, onSelectReport, selectedKeys }) {
 
     const handleClick = () => {
         if (hoveredNodeRef.current) {
-            // Passes the ID back to App.js which will toggle the checkbox
             onSelectReport(hoveredNodeRef.current); 
         }
     };
@@ -387,7 +392,7 @@ export default function GraphView({ reports, onSelectReport, selectedKeys }) {
           <div style={{ 
               position: 'absolute', bottom: '24px', right: '24px', zIndex: 10, 
               background: 'rgba(15, 23, 42, 0.9)', backdropFilter: 'blur(12px)',
-              border: `1px solid ${hoveredData.color ? '#' + hoveredData.color.toString(16).padStart(6, '0') : '#e056fd'}`,
+              border: `1px solid ${hoveredData.color ? '#' + hoveredData.color.toString(16).padStart(6, '0') : '#10b981'}`,
               padding: '20px', borderRadius: '8px', maxWidth: '340px', pointerEvents: 'none',
               boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5)'
           }}>
@@ -413,7 +418,7 @@ export default function GraphView({ reports, onSelectReport, selectedKeys }) {
               ) : (
                   <>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                          <span style={{ fontSize: '10px', background: 'rgba(224, 86, 253, 0.2)', color: '#e056fd', padding: '4px 8px', borderRadius: '12px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                          <span style={{ fontSize: '10px', background: 'rgba(16, 185, 129, 0.2)', color: '#10b981', padding: '4px 8px', borderRadius: '12px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px' }}>
                               ⚡ Synthesis Tether
                           </span>
                       </div>

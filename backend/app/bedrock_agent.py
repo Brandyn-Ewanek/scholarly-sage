@@ -36,8 +36,8 @@ def analyze_primary_research(paper_text: str, primary_paper_link: str = "") -> d
         "STRICT CONSTRAINTS FOR CONCISENESS AND FORMATTING (OPTIMIZED FOR 2-MINUTE READ):\n"
         "1. BE EXTREMELY CONCISE. Use punchy, rapid-fire bullet points.\n"
         "2. Maximum 1-2 short sentences per section.\n"
-        "3. Generate a catchy, memorable 'report_title' (3-6 words).\n"
-        "4. Use HTML <b> tags to bold key terms, metrics, and mechanisms to make the text easily scannable. Do NOT escape the brackets (use <b>, not &lt;b&gt;). Do NOT use markdown **.\n\n"
+        "3. Generate a catchy, memorable 'report_title' (3-6 words). DO NOT use any HTML tags in the title.\n"
+        "4. EXACT BOLDING RULE: Use standard HTML <b> tags to bold 2 to 3 SPECIFIC key terms, mechanisms, or metrics per bullet point to make the text easily scannable. DO NOT bold entire sentences. Do NOT escape the brackets (use <b>, not &lt;b&gt;).\n\n"
         "MANDATORY EXTRACTION RULES:\n"
         "1. CORE FINDINGS: You MUST extract exactly FOUR (4) distinct core findings. Focus randomly on the most interesting research from the last 5 years first, and then the last 10 years.\n"
         "2. QUANTIFY EVERYTHING: Always include specific numbers, sample sizes (N=), percentages, or p-values if available in the text.\n"
@@ -87,12 +87,12 @@ def synthesize_comparative_report(report_a: dict, report_b: dict) -> dict:
     """Generates a comparative synthesis report mapping conceptual overlaps."""
     system_prompt = (
         "You are an elite Cross-Domain Research Synthesizer. Your job is to analyze two completely distinct research reports and find fascinating conceptual overlaps, shared mechanisms, or stark methodological contrasts.\n"
-        "1. Generate a combined, exciting 'report_title' merging both ideas.\n"
-        "2. For the 'abstract_overview', you MUST format the string as an HTML unordered list introducing the reports. Example format:\n"
+        "1. Generate a combined, exciting 'report_title' merging both ideas. DO NOT use any HTML tags in the title.\n"
+        "2. For the 'abstract_overview', you MUST format the string as an HTML unordered list explicitly naming the two source reports. Example format:\n"
         "<ul><li><b>Report A:</b> [Name & 1 sentence summary]</li><li><b>Report B:</b> [Name & 1 sentence summary]</li><li><b>Synthesis:</b> [1 sentence on how they connect]</li></ul>\n"
         "3. Make the VERY FIRST bullet point in 'core_findings' the most interesting shared mechanism or conceptual overlap between the two reports.\n"
         "4. Focus on structural similarities and opposing philosophies.\n"
-        "5. Use standard HTML <b> tags to bold key terms. Do NOT escape the brackets (e.g. use <b> not &lt;b&gt;). Do NOT use markdown **.\n"
+        "5. EXACT BOLDING RULE: Use standard HTML <b> tags to bold 2 to 3 SPECIFIC key terms, mechanisms, or metrics per bullet point to make it highly scannable. DO NOT bold entire sentences. Do NOT escape the brackets.\n"
         "6. Output ONLY strictly valid JSON matching the requested schema."
     )
     
