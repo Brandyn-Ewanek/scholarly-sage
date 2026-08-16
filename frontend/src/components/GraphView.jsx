@@ -342,8 +342,8 @@ export default function GraphView({ reports, onSelectReport, selectedKeys }) {
     };
 
     const handleClick = () => {
-        if (hoveredNodeRef.current) {
-            onSelectReport(hoveredNodeRef.current); 
+        if (hoveredNodeRef.current && onSelectReportRef.current) {
+            onSelectReportRef.current(hoveredNodeRef.current); 
         }
     };
 
@@ -363,7 +363,7 @@ export default function GraphView({ reports, onSelectReport, selectedKeys }) {
       }
       document.body.style.cursor = 'default';
     };
-  }, [nodesData, edgesData, onSelectReport]);
+  }, [nodesData, edgesData]); // <-- Removed onSelectReport from dependencies!
 
   const hoveredData = useMemo(() => {
       let data = nodesData.find(n => n.id === hoveredNodeId);

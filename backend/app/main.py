@@ -101,28 +101,33 @@ async def list_all_reports(response: Response):
             print(f"Failed to load {r.get('file_key')}: {str(e)}")
             continue
             
-    # SAFETY NET 2: PCA Crash Protection. If you have legacy files with different embedding sizes,
-    # numpy and sklearn will crash. This ensures we only use matching sizes.
+    # SAFETY NET 2: PCA Crash Protection (Fixes your inhomogeneous shape error!)
     if len(valid_embeddings) >= 3:
         try:
             base_len = len(valid_embeddings[0])
             clean_embeddings = []
             clean_indices = []
+            # Only allow embeddings that perfectly match the length of the first one
             for idx, emb in zip(valid_indices, valid_embeddings):
                 if len(emb) == base_len:
                     clean_embeddings.append(emb)
                     clean_indices.append(idx)
                     
             if len(clean_embeddings) >= 3:
-                pca = PCA(n_components=3)
-                # Convert to numpy array and scale up the coordinates for visual spread
-                coords_3d = pca.fit_transform(np.array(clean_embeddings)) * 200
+                # Calculate up to 5 dimensions if we have enough reports
+                n_comp = min(5, len(clean_embeddings))
+                pca = PCA(n_components=n_comp)
                 
-                for idx, coords in zip(clean_indices, coords_3d):
+                # Convert to numpy array and scale up the coordinates for visual spread
+                coords_nd = pca.fit_transform(np.array(clean_embeddings)) * 200
+                
+                for i, idx in enumerate(clean_indices):
                     full_reports[idx]["pca_coords"] = {
-                        "x": float(coords[0]),
-                        "y": float(coords[1]),
-                        "z": float(coords[2])
+                        "x": float(coords_nd[i][0]),
+                        "y": float(coords_nd[i][1]),
+                        "z": float(coords_nd[i][2]),
+                        "w": float(coords_nd[i][3]) if n_comp > 3 else 0.0,
+                        "v": float(coords_nd[i][4]) if n_comp > 4 else 0.0
                     }
         except Exception as e:
             print(f"PCA Dimension Error: {str(e)}")
@@ -138,7 +143,7 @@ async def list_all_reports(response: Response):
             
             if not q_type:
                 # Ruthless check: Only real searches have a scraped 'primary_paper'. 
-                if data.get("source_reports") or not data.get("primary_paper"):
+                if data.get("source_reports") or "primary_paper" not in data:
                     q_type = "comparative_synthesis"
                 else:
                     q_type = "primary_research"
