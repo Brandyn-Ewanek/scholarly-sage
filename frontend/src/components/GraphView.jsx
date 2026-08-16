@@ -176,9 +176,21 @@ export default function GraphView({ reports, onSelectReport, selectedKeys }) {
     const geometry = new THREE.SphereGeometry(1, 32, 32);
 
     nodesData.forEach(data => {
-      const material = new THREE.MeshStandardMaterial({
-        color: data.color, emissive: data.color, emissiveIntensity: 0.6, roughness: 0.2, metalness: 0.8
+      // THE FROSTED GLASS UPGRADE
+      const material = new THREE.MeshPhysicalMaterial({
+        color: data.color, 
+        emissive: data.color, 
+        emissiveIntensity: 0.5, // Slightly lower base glow so you can see the glass
+        roughness: 0.15,        // Slightly frosted interior
+        metalness: 0.1,         // Glass is non-metallic
+        transmission: 0.9,      // Glass-like transparency
+        ior: 1.5,               // Mathematical index of refraction for real glass
+        thickness: 1.5,         // Optical volume for light to scatter through
+        clearcoat: 1.0,         // Ultra-shiny outer shell
+        clearcoatRoughness: 0.1,
+        transparent: true
       });
+      
       const sphere = new THREE.Mesh(geometry, material);
       sphere.scale.setScalar(data.size);
       
@@ -276,7 +288,7 @@ export default function GraphView({ reports, onSelectReport, selectedKeys }) {
             mesh.material.emissive.setHex(d.color); 
             mesh.children[0].material.color.setHex(d.color);
         } else {
-            mesh.material.emissiveIntensity = 0.6; 
+            mesh.material.emissiveIntensity = 0.5; // Restored to the Frosted Glass base intensity
             mesh.children[0].material.opacity = 0.3; 
             mesh.scale.setScalar(d.size);
             mesh.material.emissive.setHex(d.color);
