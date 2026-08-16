@@ -22,6 +22,7 @@ The application is built on a decoupled frontend/backend architecture, utilizing
 
 ```mermaid
 graph TD
+    flowchart LR
     %% Define Nodes
     User((User))
     Vercel["fa:fa-desktop React Frontend<br/>(Vercel)"]
