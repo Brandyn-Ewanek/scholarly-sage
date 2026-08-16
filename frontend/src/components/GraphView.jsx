@@ -87,14 +87,15 @@ export default function GraphView({ reports, onSelectReport, selectedKeys }) {
       // --- THE AMPLIFIERS ---
       
       // DIMENSION 4 (w): Macro Orbit Speed
-      // We force W into a massive multiplier so some nodes sit still, while others orbit fast.
       let rawW = r.pca_coords?.w;
-      if (rawW === undefined || rawW === null || rawW === 0) rawW = ((hash % 100) - 50);
+      if (rawW === undefined || rawW === null || rawW === 0) rawW = hash;
       
-      // Creates a multiplier between -1.0 and 1.0 regardless of how tiny PCA W is
-      const wFactor = ((rawW * 1000) % 50) / 50; 
-      // Reduced orbital speed by 20% (0.8 -> 0.64)
-      const orbitSpeed = wFactor * 0.64; 
+      // By wrapping W in a Sine wave with a massive multiplier, we guarantee that 
+      // even microscopic decimals map evenly from -1.0 (backward) to 1.0 (forward)
+      const wFactor = Math.sin(rawW * 1234567); 
+      
+      // Set individual orbit speeds. Some fast, some slow, some backward!
+      const orbitSpeed = wFactor * 0.15; 
 
       // DIMENSION 5 (v): Micro Jitter
       // We force V into a massive multiplier so some nodes are calm, and others shake violently.
@@ -158,7 +159,8 @@ export default function GraphView({ reports, onSelectReport, selectedKeys }) {
     controls.enableDamping = true;
     controls.dampingFactor = 0.05;
     controls.autoRotate = true;
-    controls.autoRotateSpeed = 0.5;
+    // Slow down the global camera spin so individual node speeds stand out
+    controls.autoRotateSpeed = 0.1;
     controlsRef.current = controls;
 
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.85); 
