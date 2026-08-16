@@ -22,10 +22,17 @@ export default function GraphView({ reports, onSelectReport, selectedKeys }) {
   const hoveredNodeRef = useRef(null); 
   const [hoveredNodeId, setHoveredNodeId] = useState(null);
 
+  // Safely store props in refs to prevent the 3D canvas from ever unmounting/resetting!
   const selectedKeysRef = useRef(selectedKeys || []);
   useEffect(() => {
       selectedKeysRef.current = selectedKeys || [];
   }, [selectedKeys]);
+
+  // THIS is the missing line that caused the crash/reset!
+  const onSelectReportRef = useRef(onSelectReport);
+  useEffect(() => {
+      onSelectReportRef.current = onSelectReport;
+  }, [onSelectReport]);
 
   const nodesData = useMemo(() => {
     if (!reports || !Array.isArray(reports) || reports.length === 0) return [];
@@ -33,7 +40,7 @@ export default function GraphView({ reports, onSelectReport, selectedKeys }) {
     return reports.filter(r => r.query_type !== 'comparative_synthesis').map((r, i) => {
       const filename = r.file_key.split('/').pop().replace('.json', '');
       const rawTitle = r.executive_summary_2page?.report_title || filename.replace(/-/g, ' ');
-      const title = cleanTitle(rawTitle); // Strip HTML
+      const title = cleanTitle(rawTitle); 
       const majorCategory = r.taxonomy?.major_category || 'General Research';
       const subCategory = r.taxonomy?.sub_category || 'General';
       const query = r.original_query || 'Unknown Query';
@@ -43,18 +50,14 @@ export default function GraphView({ reports, onSelectReport, selectedKeys }) {
       const HUES = [15, 35, 50, 140, 180, 200, 220, 270, 320, 340];
       const hueSeedStr = isGeneral ? title : majorCategory;
       let hueSum = 0;
-      for (let j = 0; j < hueSeedStr.length; j++) {
-          hueSum += hueSeedStr.charCodeAt(j);
-      }
+      for (let j = 0; j < hueSeedStr.length; j++) hueSum += hueSeedStr.charCodeAt(j);
       const hue = HUES[hueSum % HUES.length];
 
       let lightness = 0.60;
       if (!isGeneral && subCategory) {
           let shadeSum = 0;
           const shadeStr = String(subCategory);
-          for (let j = 0; j < shadeStr.length; j++) {
-              shadeSum += shadeStr.charCodeAt(j);
-          }
+          for (let j = 0; j < shadeStr.length; j++) shadeSum += shadeStr.charCodeAt(j);
           lightness = 0.45 + ((shadeSum % 30) / 100);
       }
 
@@ -63,6 +66,7 @@ export default function GraphView({ reports, onSelectReport, selectedKeys }) {
 
       const nodeSize = Math.min(Math.max((r.size / 1024) * 0.225, 0.9), 3.6);
 
+      // DIMENSIONS 1-3: Base Coordinates
       let baseX, baseY, baseZ;
       if (r.pca_coords) {
           baseX = r.pca_coords.x; baseY = r.pca_coords.y; baseZ = r.pca_coords.z;
@@ -73,15 +77,26 @@ export default function GraphView({ reports, onSelectReport, selectedKeys }) {
           baseZ = (Math.random() - 0.5) * clusterSpread;
       }
 
-      const orbitSpeed = 0.001 + Math.random() * 0.003;
-      const orbitPhase = Math.random() * Math.PI * 2;
-      const jitterSpeed = 0.05 + Math.random() * 0.1;
-      const jitterAmplitude = 1 + Math.random() * 3;
-      const jitterPhases = { x: Math.random() * Math.PI * 2, y: Math.random() * Math.PI * 2, z: Math.random() * Math.PI * 2 };
+      // Generate deterministic hash for fallbacks if library is too small for true PCA
+      let hash = 0;
+      for (let j = 0; j < r.file_key.length; j++) hash += r.file_key.charCodeAt(j);
+
+      // DIMENSION 4 (w): Macro Orbit 
+      // Multiplied to ensure visual variation. Uses hash fallback if PCA lacks 4 dimensions.
+      const w = r.pca_coords?.w || ((hash % 100) - 50);
+      const orbitSpeed = 0.0005 + (Math.abs(w) / 200) * 0.008; 
+      const orbitPhase = (w / 100) * Math.PI * 2;
+
+      // DIMENSION 5 (v): Micro Jitter
+      // Multiplied to amplify amplitude. Uses hash fallback if PCA lacks 5 dimensions.
+      const v = r.pca_coords?.v || (((hash * 7) % 100) - 50);
+      const jitterSpeed = 0.02 + (Math.abs(v) / 100) * 0.15;
+      const jitterAmplitude = (Math.abs(v) / 100) * 4.5; 
+      const jitterPhases = { x: hash % Math.PI, y: (hash * 2) % Math.PI, z: (hash * 3) % Math.PI };
 
       return {
         id: r.file_key, title, category: majorCategory, subCategory, query, size: nodeSize, color: hexColor,
-        basePos: new THREE.Vector3(baseX, baseY, baseZ), orbitSpeed, orbitPhase, jitterSpeed, jitterAmplitude, jitterPhases, userData: r
+        basePos: new THREE.Vector3(baseX, baseY, baseZ), orbitSpeed, orbitPhase, jitterSpeed, jitterAmplitude, jitterPhases, userData: r, w, v
       };
     });
   }, [reports]);
@@ -91,7 +106,7 @@ export default function GraphView({ reports, onSelectReport, selectedKeys }) {
     
     return reports.filter(r => r.query_type === 'comparative_synthesis').map(r => {
         let rawTitle = r.executive_summary_2page?.report_title || "Comparative Synthesis Report";
-        const title = cleanTitle(rawTitle); // Strip HTML
+        const title = cleanTitle(rawTitle);
         return {
             id: r.file_key,
             sourceId: r.source_reports?.[0],
@@ -166,7 +181,6 @@ export default function GraphView({ reports, onSelectReport, selectedKeys }) {
         const sourceMesh = nodeMeshes.find(m => m.userData.id === edge.sourceId);
         const targetMesh = nodeMeshes.find(m => m.userData.id === edge.targetId);
         
-        // REPLACED: Changed all tethers/synthesis objects to Emerald Green (0x10b981)
         if (!sourceMesh || !targetMesh) {
             const fallbackGeo = new THREE.OctahedronGeometry(1.5);
             const fallbackMat = new THREE.MeshStandardMaterial({ color: 0x10b981, emissive: 0x10b981, emissiveIntensity: 0.8 });
@@ -213,6 +227,8 @@ export default function GraphView({ reports, onSelectReport, selectedKeys }) {
 
       nodeMeshes.forEach(mesh => {
         const d = mesh.userData;
+        
+        // Apply 4D Orbit Drift
         const orbitAngle = time * d.orbitSpeed + d.orbitPhase;
         const radius = Math.sqrt(d.basePos.x * d.basePos.x + d.basePos.z * d.basePos.z);
         
@@ -220,6 +236,7 @@ export default function GraphView({ reports, onSelectReport, selectedKeys }) {
         const currentZ = Math.sin(orbitAngle) * radius;
         const currentY = d.basePos.y;
 
+        // Apply 5D Micro-Jitter
         const jx = Math.sin(time * d.jitterSpeed + d.jitterPhases.x) * d.jitterAmplitude;
         const jy = Math.cos(time * d.jitterSpeed + d.jitterPhases.y) * d.jitterAmplitude;
         const jz = Math.sin(time * d.jitterSpeed * 1.2 + d.jitterPhases.z) * d.jitterAmplitude;
@@ -291,7 +308,7 @@ export default function GraphView({ reports, onSelectReport, selectedKeys }) {
               edgeObj.line.material.color.setHex(0xffffff); 
           } else {
               edgeObj.line.material.opacity = 0.3;
-              edgeObj.line.material.color.setHex(0x10b981); // Emerald Green
+              edgeObj.line.material.color.setHex(0x10b981); 
           }
       });
 
@@ -342,6 +359,7 @@ export default function GraphView({ reports, onSelectReport, selectedKeys }) {
     };
 
     const handleClick = () => {
+        // Safe execution using the ref prevents React from tearing down the scene!
         if (hoveredNodeRef.current && onSelectReportRef.current) {
             onSelectReportRef.current(hoveredNodeRef.current); 
         }
@@ -363,7 +381,7 @@ export default function GraphView({ reports, onSelectReport, selectedKeys }) {
       }
       document.body.style.cursor = 'default';
     };
-  }, [nodesData, edgesData]); // <-- Removed onSelectReport from dependencies!
+  }, [nodesData, edgesData]); // Completely protected from selectedKeys resets!
 
   const hoveredData = useMemo(() => {
       let data = nodesData.find(n => n.id === hoveredNodeId);
@@ -411,8 +429,8 @@ export default function GraphView({ reports, onSelectReport, selectedKeys }) {
                       <h4 style={{ margin: '0 0 8px 0', color: '#f8fafc', fontSize: '16px', lineHeight: '1.4' }}>{hoveredData.title}</h4>
                       <p style={{ margin: '0 0 12px 0', fontSize: '13px', color: '#38bdf8', fontWeight: 'bold' }}>Click to select for synthesis</p>
                       <div style={{ fontSize: '12px', color: '#94a3b8', display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #1e293b', paddingTop: '12px' }}>
-                         <span>Mass: {hoveredData.size.toFixed(2)} units</span>
-                         <span>Jitter: {(hoveredData.jitterAmplitude * 10).toFixed(1)}%</span>
+                         <span>Dim 4 (W): {hoveredData.w?.toFixed(1) || '0.0'}</span>
+                         <span>Dim 5 (V): {hoveredData.v?.toFixed(1) || '0.0'}</span>
                       </div>
                   </>
               ) : (
