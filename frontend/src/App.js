@@ -20,6 +20,7 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [latestSearchResult, setLatestSearchResult] = useState(null);
   const [deletingKey, setDeletingKey] = useState(null);
+  const [confirmDeleteKey, setConfirmDeleteKey] = useState(null);
 
   useEffect(() => {
     loadReports();
@@ -65,8 +66,19 @@ export default function App() {
     }
   };
 
-  const handleDeleteReport = async (e, fileKey) => {
-      e.stopPropagation(); // Prevents the click from also opening the report modal
+  const handleDeleteClick = (e, fileKey) => {
+      e.stopPropagation();
+      setConfirmDeleteKey(fileKey);
+  };
+
+  const cancelDelete = (e) => {
+      e.stopPropagation();
+      setConfirmDeleteKey(null);
+  };
+
+  const confirmDelete = async (e, fileKey) => {
+      e.stopPropagation();
+      setConfirmDeleteKey(null);
       setDeletingKey(fileKey);
       try {
           await deleteReportByKey(fileKey);
@@ -282,17 +294,26 @@ export default function App() {
                               {isSynthesis ? '⚡ Comparative Synthesis' : majorCatStr}
                             </span>
                           </div>
-                          <button 
-                              onClick={(e) => handleDeleteReport(e, item.file_key)}
-                              disabled={deletingKey === item.file_key}
-                              style={{
-                                  background: 'transparent', border: 'none', color: '#ef4444', cursor: deletingKey === item.file_key ? 'wait' : 'pointer', 
-                                  fontSize: '16px', padding: '4px', opacity: deletingKey === item.file_key ? 0.5 : 1, transition: 'opacity 0.2s'
-                              }}
-                              title="Delete Report"
-                          >
-                              {deletingKey === item.file_key ? '⏳' : '🗑️'}
-                          </button>
+                          
+                          {confirmDeleteKey === item.file_key ? (
+                              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                  <span style={{ color: '#ef4444', fontSize: '12px', fontWeight: 'bold' }}>Delete?</span>
+                                  <button onClick={(e) => confirmDelete(e, item.file_key)} style={{ background: '#ef4444', color: 'white', border: 'none', padding: '4px 10px', borderRadius: '4px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}>Yes</button>
+                                  <button onClick={cancelDelete} style={{ background: '#334155', color: 'white', border: 'none', padding: '4px 10px', borderRadius: '4px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}>No</button>
+                              </div>
+                          ) : (
+                              <button 
+                                  onClick={(e) => handleDeleteClick(e, item.file_key)}
+                                  disabled={deletingKey === item.file_key}
+                                  style={{
+                                      background: 'transparent', border: 'none', color: '#ef4444', cursor: deletingKey === item.file_key ? 'wait' : 'pointer', 
+                                      fontSize: '16px', padding: '4px', opacity: deletingKey === item.file_key ? 0.5 : 1, transition: 'opacity 0.2s'
+                                  }}
+                                  title="Delete Report"
+                              >
+                                  {deletingKey === item.file_key ? '⏳' : '🗑️'}
+                              </button>
+                          )}
                         </div>
                         <h4 style={{ margin: '0 0 12px 0', color: '#e2e8f0', fontSize: '16px', lineHeight: '1.4', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
                             {title}
