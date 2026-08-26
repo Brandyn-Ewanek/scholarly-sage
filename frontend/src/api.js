@@ -19,7 +19,10 @@ export const fetchReportByKey = async (fileKey) => {
 };
 
 export const deleteReportByKey = async (fileKey) => {
-  const response = await axios.delete(`${API_BASE_URL}/api/reports/${encodeURIComponent(fileKey)}`);
+  // FIXED: Using query parameters instead of URL paths to prevent 405 errors
+  const response = await axios.delete(`${API_BASE_URL}/api/reports`, {
+      params: { file_key: fileKey }
+  });
   return response.data;
 };
 

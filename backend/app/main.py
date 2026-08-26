@@ -194,15 +194,17 @@ async def get_single_report(file_key: str):
         raise HTTPException(status_code=404, detail="Report not found in S3 bucket.")
     return report
 
-@app.delete("/api/reports/{file_key:path}")
+@app.delete("/api/reports")
 async def delete_report(file_key: str):
     """
-    Deletes a specific research report payload from S3.
+    Deletes a specific research report payload from S3 using query parameters
+    to prevent 405 routing errors.
     """
     success = delete_research_report(file_key)
     if not success:
         raise HTTPException(status_code=500, detail="Failed to delete report from S3 bucket.")
     return {"status": "success", "message": "Report deleted successfully."}
+
 
 @app.post("/api/research")
 async def execute_new_research(request: ResearchRequest):
