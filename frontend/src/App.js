@@ -19,8 +19,11 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [latestSearchResult, setLatestSearchResult] = useState(null);
+  
+  // Deletion UI states
   const [deletingKey, setDeletingKey] = useState(null);
   const [confirmDeleteKey, setConfirmDeleteKey] = useState(null);
+  const [deleteError, setDeleteError] = useState(null);
 
   useEffect(() => {
     loadReports();
@@ -80,6 +83,8 @@ export default function App() {
       e.stopPropagation();
       setConfirmDeleteKey(null);
       setDeletingKey(fileKey);
+      setDeleteError(null);
+      
       try {
           await deleteReportByKey(fileKey);
           // Instantly remove from local state to update the UI and 3D graph
@@ -88,6 +93,16 @@ export default function App() {
           setSelectedKeys(prev => prev.filter(k => k !== fileKey));
       } catch (err) {
           console.error('Failed to delete report:', err);
+          // Extract error message visually for the user without an alert()
+          const status = err.response?.status || 500;
+          if (status === 500) {
+              setDeleteError("AWS Error (500): The server crashed during deletion. Please verify your AWS IAM role has 's3:DeleteObject' permissions.");
+          } else {
+              setDeleteError(`Deletion Failed (${status}): Please try again later.`);
+          }
+          
+          // Auto-clear the error banner after 6 seconds
+          setTimeout(() => setDeleteError(null), 6000);
       } finally {
           setDeletingKey(null);
       }
@@ -136,8 +151,6 @@ export default function App() {
 
   const getCategoryColor = (majorCat, subCat, title) => {
       const isGeneral = (majorCat === 'General Research' || !majorCat);
-      
-      // Curated Palette of base Hues
       const HUES = [15, 35, 50, 140, 180, 200, 220, 270, 320, 340];
       const hueSeedStr = isGeneral ? String(title) : String(majorCat);
       
@@ -263,8 +276,25 @@ export default function App() {
         {}
         {activeTab === 'library' && (
           <div style={{ flex: 1, padding: '40px', overflowY: 'auto' }}>
-            <h3 style={{ fontSize: '24px', marginBottom: '8px' }}>Your Research Library</h3>
-            <p style={{ color: '#94a3b8', marginBottom: '32px' }}>All previously scraped and analyzed reports permanently archived in your AWS S3 Data Lake.</p>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px' }}>
+                <div>
+                    <h3 style={{ fontSize: '24px', margin: '0 0 8px 0' }}>Your Research Library</h3>
+                    <p style={{ color: '#94a3b8', margin: 0 }}>All previously scraped and analyzed reports permanently archived in your AWS Data Lake.</p>
+                </div>
+                
+                {/* Elegant UI Error Banner */}
+                {deleteError && (
+                    <div style={{ 
+                        background: '#7f1d1d', border: '1px solid #ef4444', color: '#fca5a5', 
+                        padding: '12px 20px', borderRadius: '8px', fontSize: '14px', 
+                        maxWidth: '400px', display: 'flex', alignItems: 'center', gap: '10px',
+                        boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.5)'
+                    }}>
+                        <span style={{ fontSize: '18px' }}>⚠️</span>
+                        <span style={{ lineHeight: '1.4' }}>{deleteError}</span>
+                    </div>
+                )}
+            </div>
             
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
                 {(reports || []).map((item) => {
@@ -272,8 +302,6 @@ export default function App() {
                     const majorCatStr = item.taxonomy?.major_category || 'General Research';
                     const subCatStr = item.taxonomy?.sub_category || 'General';
                     const title = cleanTitle(item.executive_summary_2page?.report_title || item.original_query || item.file_key.split('/').pop().replace('.json', ''));
-                    
-                    // REPLACED: Changed Synthesis theme to Emerald Green (#10b981)
                     const catColor = isSynthesis ? '#10b981' : getCategoryColor(majorCatStr, subCatStr, title);
                     
                     return (
@@ -296,7 +324,7 @@ export default function App() {
                           </div>
                           
                           {confirmDeleteKey === item.file_key ? (
-                              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                              <div style={{ display: 'flex', gap: '8px', alignItems: 'center', background: '#020617', padding: '4px 8px', borderRadius: '6px', border: '1px solid #334155' }}>
                                   <span style={{ color: '#ef4444', fontSize: '12px', fontWeight: 'bold' }}>Delete?</span>
                                   <button onClick={(e) => confirmDelete(e, item.file_key)} style={{ background: '#ef4444', color: 'white', border: 'none', padding: '4px 10px', borderRadius: '4px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}>Yes</button>
                                   <button onClick={cancelDelete} style={{ background: '#334155', color: 'white', border: 'none', padding: '4px 10px', borderRadius: '4px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}>No</button>
