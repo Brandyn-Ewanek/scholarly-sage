@@ -18,6 +18,17 @@ export const fetchReportByKey = async (fileKey) => {
   return response.data;
 };
 
+export const deleteReportByKey = async (fileKey) => {
+  const response = await fetch(`${API_BASE_URL}/api/reports/${encodeURIComponent(fileKey)}`, {
+    method: 'DELETE',
+  });
+  
+  if (!response.ok) {
+    throw new Error(`Failed to delete report: ${response.statusText}`);
+  }
+  return response.json();
+};
+
 export const executeResearch = async (query) => {
   const response = await fetch(`${API_BASE_URL}/api/research`, {
     method: 'POST',

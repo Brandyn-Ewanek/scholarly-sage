@@ -7,6 +7,7 @@ from botocore.exceptions import ClientError
 
 # This defaults to the bucket name defined in your Streamlit IAM policy
 S3_BUCKET_NAME = os.getenv("S3_BUCKET_NAME", "scholarly-sage-s3")
+TAXONOMY_KEY = "taxonomy.json"
 s3_client = boto3.client('s3')
 
 def save_research_report(report_data: dict) -> str:
@@ -63,7 +64,7 @@ def list_research_reports(prefix="") -> list:
             if "Contents" in page:
                 for obj in page["Contents"]:
                     # Exclude non-report metadata files
-                    if obj["Key"].endswith(".json") and obj["Key"] != "taxonomy.json":
+                    if obj["Key"].endswith(".json") and obj["Key"] != TAXONOMY_KEY:
                         reports.append({
                             "file_key": obj["Key"],
                             "last_modified": obj["LastModified"].isoformat(),
@@ -74,27 +75,46 @@ def list_research_reports(prefix="") -> list:
         print(f"Error listing reports from S3: {e}")
         return []
 
-def get_master_taxonomy() -> list:
+def get_master_taxonomy() -> dict:
     """Reads the central taxonomy.json file from S3."""
     try:
-        response = s3_client.get_object(Bucket=S3_BUCKET_NAME, Key="taxonomy.json")
+        response = s3_client.get_object(Bucket=S3_BUCKET_NAME, Key=TAXONOMY_KEY)
         data = json.loads(response['Body'].read().decode('utf-8'))
-        return data.get("categories", [])
+        # Ensure backwards compatibility if the old file was a raw list
+        if isinstance(data, list):
+            return {"categories": data}
+        return data
     except ClientError:
-        # Return a default list if the file doesn't exist yet
-        return ["Artificial Intelligence", "Computer Science", "General Research"]
+        # Return a default dict if the file doesn't exist yet
+        return {"categories": ["Artificial Intelligence", "Computer Science", "General Research"]}
 
 def update_master_taxonomy(new_category: str):
     """Appends a new category to taxonomy.json in S3 if it doesn't already exist."""
-    categories = get_master_taxonomy()
-    if new_category not in categories:
-        categories.append(new_category)
+    taxonomy = get_master_taxonomy()
+    
+    if "categories" not in taxonomy:
+        taxonomy["categories"] = []
+        
+    if new_category not in taxonomy["categories"]:
+        taxonomy["categories"].append(new_category)
         try:
             s3_client.put_object(
                 Bucket=S3_BUCKET_NAME,
-                Key="taxonomy.json",
-                Body=json.dumps({"categories": categories}, indent=2),
+                Key=TAXONOMY_KEY,
+                Body=json.dumps(taxonomy, indent=2),
                 ContentType='application/json'
             )
         except ClientError as e:
             print(f"Error updating taxonomy in S3: {e}")
+
+def delete_research_report(file_key: str) -> bool:
+    """Deletes a specific research report JSON file from the S3 bucket."""
+    try:
+        s3_client.delete_object(
+            Bucket=S3_BUCKET_NAME,
+            Key=file_key
+        )
+        return True
+    except ClientError as e:
+        print(f"Error deleting report {file_key}: {e}")
+        return False

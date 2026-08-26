@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { fetchAllReports, fetchReportByKey, synthesizeReports, executeResearch } from './api';
+import { fetchAllReports, fetchReportByKey, synthesizeReports, executeResearch, deleteReportByKey } from './api';
 import GraphView from './components/GraphView';
 import ReportModal from './components/ReportModal';
 
@@ -19,6 +19,7 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [latestSearchResult, setLatestSearchResult] = useState(null);
+  const [deletingKey, setDeletingKey] = useState(null);
 
   useEffect(() => {
     loadReports();
@@ -62,6 +63,22 @@ export default function App() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleDeleteReport = async (e, fileKey) => {
+      e.stopPropagation(); // Prevents the click from also opening the report modal
+      setDeletingKey(fileKey);
+      try {
+          await deleteReportByKey(fileKey);
+          // Instantly remove from local state to update the UI and 3D graph
+          setReports(prev => prev.filter(r => r.file_key !== fileKey));
+          // If the deleted report was selected for synthesis, unselect it
+          setSelectedKeys(prev => prev.filter(k => k !== fileKey));
+      } catch (err) {
+          console.error('Failed to delete report:', err);
+      } finally {
+          setDeletingKey(null);
+      }
   };
 
   const toggleCheckbox = (fileKey) => {
@@ -258,10 +275,24 @@ export default function App() {
                         onMouseOver={(e) => { e.currentTarget.style.borderColor = catColor; e.currentTarget.style.transform = 'translateY(-2px)'; }}
                         onMouseOut={(e) => { e.currentTarget.style.borderColor = '#1e293b'; e.currentTarget.style.transform = 'translateY(0)'; }}
                     >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
-                          <span style={{ fontSize: '10px', color: catColor, textTransform: 'uppercase', fontWeight: 'bold', letterSpacing: '0.5px' }}>
-                            {isSynthesis ? '⚡ Comparative Synthesis' : majorCatStr}
-                          </span>
+                        {}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span style={{ fontSize: '10px', color: catColor, textTransform: 'uppercase', fontWeight: 'bold', letterSpacing: '0.5px' }}>
+                              {isSynthesis ? '⚡ Comparative Synthesis' : majorCatStr}
+                            </span>
+                          </div>
+                          <button 
+                              onClick={(e) => handleDeleteReport(e, item.file_key)}
+                              disabled={deletingKey === item.file_key}
+                              style={{
+                                  background: 'transparent', border: 'none', color: '#ef4444', cursor: deletingKey === item.file_key ? 'wait' : 'pointer', 
+                                  fontSize: '16px', padding: '4px', opacity: deletingKey === item.file_key ? 0.5 : 1, transition: 'opacity 0.2s'
+                              }}
+                              title="Delete Report"
+                          >
+                              {deletingKey === item.file_key ? '⏳' : '🗑️'}
+                          </button>
                         </div>
                         <h4 style={{ margin: '0 0 12px 0', color: '#e2e8f0', fontSize: '16px', lineHeight: '1.4', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
                             {title}
