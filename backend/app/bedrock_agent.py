@@ -8,8 +8,8 @@ from botocore.exceptions import ClientError
 bedrock_client = boto3.client('bedrock-runtime', region_name=os.getenv("AWS_DEFAULT_REGION", "us-east-1"))
 
 # Model IDs
-DEEP_MODEL_ID = "anthropic.claude-3-sonnet-20240229-v1:0"
-FAST_MODEL_ID = "anthropic.claude-3-haiku-20240307-v1:0"
+DEEP_MODEL_ID = "anthropic.claude-sonnet-5"
+FAST_MODEL_ID = "anthropic.claude-haiku-5-5"
 TITAN_MODEL_ID = "amazon.titan-embed-text-v2:0"
 
 def parse_json_response(output_text: str) -> dict:
